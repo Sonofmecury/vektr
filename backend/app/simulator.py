@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+Scenario = Literal["normal", "connectivity", "battery", "sensor", "maintenance"]
+
+
+class Position(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    altitude_m: float = Field(ge=0)
+
+
+class Battery(BaseModel):
+    percentage: int = Field(ge=0, le=100)
+    voltage_v: float = Field(ge=0)
+    temperature_c: float
+
+
+class Connectivity(BaseModel):
+    status: Literal["connected", "delayed", "disconnected"]
+    signal_quality: int = Field(ge=0, le=100)
+
+
+class Telemetry(BaseModel):
+    aircraft_id: str
+    timestamp: datetime
+    position: Position
+    ground_speed_mps: float = Field(ge=0)
+    vertical_speed_mps: float
+    heading_deg: float = Field(ge=0, lt=360)
+    battery: Battery
+    gps_satellites: int = Field(ge=0)
+    gps_fix: Literal["3D", "2D", "none"]
+    connectivity: Connectivity
+    sensor_status: Literal["nominal", "anomaly"]
+    status: Literal["active", "attention", "available"]
+
+
+@dataclass(frozen=True)
+class AircraftSeed:
+    id: str
+    name: str
+    model: str
+    kind: str
+    latitude: float
+    longitude: float
+    phase: float
+
+
+FLEET = (
+    AircraftSeed("UAV-001", "Aster One", "Aster M4", "Multirotor inspection", 9.0765, 7.3986, 0.0),
+    AircraftSeed("UAV-002", "Meridian Two", "Meridian V2", "VTOL mapping", 10.5105, 7.4165, 0.8),
+    AircraftSeed("UAV-003", "Kestrel Three", "Kestrel F8", "Fixed-wing survey", 9.8965, 8.8583, 1.6),
+    AircraftSeed("UAV-004", "Aster Four", "Aster M4", "Multirotor inspection", 6.5244, 3.3792, 2.4),
+    AircraftSeed("UAV-005", "Atlas Five", "Atlas C2", "Infrastructure survey", 7.3775, 3.9470, 3.2),
+    AircraftSeed("UAV-006", "Meridian Six", "Meridian V2", "VTOL mapping", 11.9964, 8.5167, 4.0),
+)
+
+
+class Simulator:
+    """Deterministic, read-only synthetic telemetry. Tick number is its seed."""
+
+    def __init__(self) -> None:
+        self.tick = 0
+        self.scenario: Scenario = "normal"
+        self.running = True
+        self.speed = 1
+
+    def reset(self, scenario: Scenario = "normal") -> None:
+        self.tick = 0
+        self.scenario = scenario
+        self.running = True
+
+    def step(self, timestamp: datetime | None = None) -> list[Telemetry]:
+        if self.running:
+            self.tick += self.speed
+        now = timestamp or datetime.now(timezone.utc)
+        result: list[Telemetry] = []
+        for i, craft in enumerate(FLEET):
+            angle = self.tick * 0.045 + craft.phase
+            active = i < 4
+            battery = max(9, 92 - int(self.tick * (0.013 + i * 0.0015)))
+            if self.scenario == "battery" and i == 1:
+                battery = max(11, 48 - self.tick * 3)
+            signal = max(35, 93 - int(8 * abs(math.sin(angle / 2))))
+            connection = "connected"
+            if self.scenario == "connectivity" and i == 0:
+                signal = max(0, 82 - self.tick * 9)
+                connection = "disconnected" if self.tick >= 9 else "delayed" if self.tick >= 5 else "connected"
+            sensor = "anomaly" if self.scenario == "sensor" and i == 2 and self.tick >= 7 else "nominal"
+            attention = connection != "connected" or battery < 25 or sensor == "anomaly" or (self.scenario == "maintenance" and i == 3 and self.tick >= 5)
+            result.append(Telemetry(
+                aircraft_id=craft.id, timestamp=now,
+                position=Position(latitude=craft.latitude + 0.015 * math.sin(angle), longitude=craft.longitude + 0.019 * math.cos(angle), altitude_m=round(112 + 16 * math.sin(angle * 0.5), 1) if active else 0),
+                ground_speed_mps=round(12 + 2 * math.cos(angle), 1) if active else 0,
+                vertical_speed_mps=round(0.36 * math.cos(angle * 0.5), 2) if active else 0,
+                heading_deg=round((math.degrees(angle) + 90) % 360, 1),
+                battery=Battery(percentage=battery, voltage_v=round(19.8 + battery * 0.041, 2), temperature_c=round(29 + i * 0.6 + 2 * math.sin(angle), 1)),
+                gps_satellites=13 + i % 4, gps_fix="3D",
+                connectivity=Connectivity(status=connection, signal_quality=signal),
+                sensor_status=sensor,
+                status="attention" if attention else "active" if active else "available",
+            ))
+        return result

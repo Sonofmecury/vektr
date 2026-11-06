@@ -1,0 +1,9 @@
+.venv/
+node_modules/
+.next/
+*.db
+.env*
+!*.example
+__pycache__/
+.pytest_cache/
+.playwright-cli/

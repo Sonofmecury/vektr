@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: uavhub
+      POSTGRES_PASSWORD: local_demo_only
+      POSTGRES_DB: uavhub
+    volumes:
+      - uavhub_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uavhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://uavhub:local_demo_only@db:5432/uavhub
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      CORS_ORIGINS: http://localhost:3001
+      DEMO_CONTROLS_ENABLED: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+volumes:
+  uavhub_data:

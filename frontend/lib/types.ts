@@ -1,0 +1,25 @@
+export type Telemetry = {
+  aircraft_id: string; timestamp: string;
+  position: {latitude: number; longitude: number; altitude_m: number};
+  ground_speed_mps: number; vertical_speed_mps: number; heading_deg: number;
+  battery: {percentage: number; voltage_v: number; temperature_c: number};
+  gps_satellites: number; gps_fix: string;
+  connectivity: {status: "connected" | "delayed" | "disconnected"; signal_quality: number};
+  sensor_status: "nominal" | "anomaly";
+  status: "active" | "attention" | "available";
+};
+export type Aircraft = {id: string; name: string; model: string; kind: string; serial: string; firmware: string;
+  registered_at: string; flight_hours: number; battery_health: number; battery_cycles: number; telemetry: Telemetry | null};
+export type Alert = {id: string; aircraft_id: string; timestamp: string; category: string; severity: string;
+  description: string; state: string; evidence: {sample: Telemetry}; note: string; resolved_at: string | null};
+export type Maintenance = {id: string; aircraft_id: string; component: string; inspection_type: string;
+  due_at: string; status: string; technician: string; note: string; completed_at: string | null};
+export type Flight = {id: string; aircraft_id: string; started_at: string; ended_at: string; duration_s: number;
+  source: string; sample_count: number; samples?: Telemetry[]};
+export type Analytics = {flight_hours_by_aircraft: {aircraft_id: string; hours: number}[]; completed_flights: number;
+  average_flight_minutes: number; alerts_by_category: {category: string; count: number}[];
+  battery_health_by_aircraft: {aircraft_id: string; health: number}[];
+  upcoming_inspections: number; overdue_inspections: number};
+export type Snapshot = {aircraft: Aircraft[]; alerts: Alert[]; maintenance: Maintenance[]; flights: Flight[];
+  simulator: {running: boolean; scenario: string; speed: number; tick: number; simulated: boolean};
+  analytics: Analytics; server_time: string};
