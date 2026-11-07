@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/rethink-sans";
 import "./globals.css";
 import "./vektr.css";
 import "./platform.css";

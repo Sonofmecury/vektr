@@ -77,7 +77,7 @@ npm run deploy
 
 Cloudflare's `vektr` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes. The domain is registered at OneBit and delegated to Cloudflare. The zone uses Cloudflare's Free plan. The API is served on the same origin, so no production `NEXT_PUBLIC_API_URL` is needed.
 
-The current CLI token can upload the Worker and assets but lacks permission to update zone Worker routes, so `wrangler deploy` reports a route error after upload. Both routes are assigned to `vektr` in the Cloudflare dashboard. Check the uploaded Worker and live domain after each deploy. Route changes must be made from the dashboard or with a token that has zone route permission; do not interpret the CLI exit code alone as a failed code upload.
+The apex and `www` routes are assigned to `vektr` in the Cloudflare dashboard. `wrangler.jsonc` omits route declarations, so deploys update the Worker without attempting a zone route change; the current CLI token can deploy Workers but has no zone route permission. `workers.dev` is disabled. Change routes in the dashboard, then verify the live domain after each deploy.
 
 ## Documentation
 
