@@ -135,7 +135,8 @@ class Simulator:
         for i, craft in enumerate(FLEET):
             angle = self.tick * 0.045 + craft.phase
             active = i < 4
-            battery = max(9, 92 - int(self.tick * (0.013 + i * 0.0015)))
+            # Routine pack rotations keep a long-running demo above the warning threshold.
+            battery = max(54, 92 - int(self.tick * (0.013 + i * 0.0015)))
             if self.scenario == "battery" and i == 1:
                 battery = max(11, 48 - self.tick * 3)
             signal = max(35, 93 - int(8 * abs(math.sin(angle / 2))))

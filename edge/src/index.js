@@ -20,7 +20,8 @@ function samplesFor(tick, scenario, timestamp) {
     const [id, , , , latitude, longitude, phase] = craft;
     const angle = tick * 0.045 + phase;
     const active = i < 4;
-    let battery = Math.max(9, 92 - Math.trunc(tick * (0.013 + i * 0.0015)));
+    // Routine pack rotations keep a long-running demo above the warning threshold.
+    let battery = Math.max(54, 92 - Math.trunc(tick * (0.013 + i * 0.0015)));
     if (scenario === "battery" && i === 1) battery = Math.max(11, 48 - tick * 3);
     let signal = Math.max(35, 93 - Math.trunc(8 * Math.abs(Math.sin(angle / 2))));
     let connection = "connected";
