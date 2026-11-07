@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import main, store
 from app.models import Alert, Base, TelemetrySample
-from app.simulator import Simulator
+from app.simulator import Simulator, historic_flight_samples
 
 
 def test_simulation_replays_identically_and_faults_are_specific():
@@ -22,6 +22,22 @@ def test_simulation_replays_identically_and_faults_are_specific():
     second.reset("sensor")
     rows = [second.step(at) for _ in range(7)]
     assert rows[-1][2].sensor_status == "anomaly"
+
+
+def test_historic_flight_routes_and_events_are_distinct_and_repeatable(client):
+    api, _ = client
+    flights = api.get("/api/snapshot").json()["flights"]
+    details = [api.get(f"/api/flights/{flight['id']}").json() for flight in flights]
+    assert len({detail["mission"] for detail in details}) == 6
+    routes = [tuple((row["position"]["latitude"], row["position"]["longitude"]) for row in detail["samples"]) for detail in details]
+    assert len({route for route in routes}) == 6
+    for detail in details:
+        assert len(detail["samples"]) == 90
+        assert [event["sample_index"] for event in detail["events"]] == sorted(event["sample_index"] for event in detail["events"])
+        assert all(event["timestamp"] == detail["samples"][event["sample_index"]]["timestamp"] for event in detail["events"])
+    corridor = next(detail for detail in details if detail["mission"] == "Linear corridor survey")
+    assert corridor["samples"][59]["connectivity"]["status"] == "delayed"
+    assert corridor["samples"] == historic_flight_samples(1, datetime.fromisoformat(corridor["started_at"].replace("Z", "+00:00")))
 
 
 @pytest.fixture

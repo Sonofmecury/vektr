@@ -59,12 +59,65 @@ function initialState() {
 }
 
 function flightsFor(s) {
+  const missions = ["Perimeter inspection", "Linear corridor survey", "Grid mapping", "Asset orbit inspection", "Infrastructure transect", "Regional transit"];
   return fleet.map((craft, i) => {
     const start = s.created - (4 + i) * 86400000 - 7200000;
     return {id: `FLT-${String(i + 1).padStart(4, "0")}`, aircraft_id: craft[0],
       started_at: iso(start), ended_at: iso(start + 89 * 8000), duration_s: 89 * 8,
-      source: "simulated", sample_count: 90};
+      source: "simulated", mission: missions[i], sample_count: 90};
   });
+}
+
+function replaySamplesFor(flight, i) {
+  const craft = fleet[i];
+  const start = Date.parse(flight.started_at);
+  return Array.from({length: 90}, (_, index) => {
+    const t = index / 89;
+    const base = samplesFor(index + 1, "normal", iso(start + index * 8000))[i];
+    let x, y;
+    if (i === 0) { // Perimeter with deliberately rounded corners.
+      const angle = t * Math.PI * 2 - Math.PI / 3;
+      x = .043 * Math.sign(Math.cos(angle)) * Math.pow(Math.abs(Math.cos(angle)), .35);
+      y = .028 * Math.sign(Math.sin(angle)) * Math.pow(Math.abs(Math.sin(angle)), .35);
+    } else if (i === 1) { // Out-and-back corridor.
+      const leg = t <= .5 ? t * 2 : (1 - t) * 2;
+      x = -.055 + .11 * leg;
+      y = -.027 + .055 * leg + .003 * Math.sin(t * Math.PI * 6);
+    } else if (i === 2) { // Parallel mapping transects.
+      const lane = Math.min(4, Math.floor(t * 5));
+      const within = (t * 5) % 1;
+      x = -.052 + lane * .026;
+      y = -.039 + (lane % 2 ? 1 - within : within) * .078;
+    } else if (i === 3) { // Tight orbit around one surveyed asset.
+      const angle = t * Math.PI * 5;
+      x = .014 * Math.cos(angle);
+      y = .014 * Math.sin(angle);
+    } else if (i === 4) { // Two infrastructure legs and a bend.
+      x = -.06 + .12 * t;
+      y = -.025 + .055 * Math.sin(t * Math.PI * .85);
+    } else { // Long regional sweep.
+      x = -.075 + .15 * t;
+      y = -.035 + .07 * t + .018 * Math.sin(t * Math.PI * 2);
+    }
+    const anomaly = (i === 1 && index >= 59 && index <= 69) || (i === 2 && index >= 43 && index <= 54);
+    const battery = Math.max(19, 92 - Math.floor(t * (i === 3 ? 73 : 57 + i * 3)));
+    const position = {latitude: round(craft[4] + y, 6), longitude: round(craft[5] + x, 6),
+      altitude_m: round((i === 3 ? 52 : 115 + i * 12) + 19 * Math.sin(t * Math.PI) + 3 * Math.sin(t * Math.PI * 7))};
+    return {...base, position, ground_speed_mps: round((i === 3 ? 5.8 : 12 + i * 1.4) + 1.7 * Math.sin(t * Math.PI * 4)),
+      battery: {...base.battery, percentage: battery, voltage_v: round(19.8 + battery * .041, 2)},
+      connectivity: {status: i === 1 && anomaly ? "delayed" : "connected", signal_quality: i === 1 && anomaly ? 38 : 88 - Math.round(8 * t)},
+      sensor_status: i === 2 && anomaly ? "anomaly" : "nominal",
+      status: anomaly || battery < 25 ? "attention" : "active"};
+  });
+}
+
+function replayEventsFor(i, samples) {
+  const events = [{sample_index: 0, category: "flight", title: "Flight recording started"},
+    {sample_index: 89, category: "flight", title: "Flight recording completed"}];
+  if (i === 1) events.push({sample_index: 59, category: "connectivity", title: "Telemetry delivery delayed"});
+  if (i === 2) events.push({sample_index: 43, category: "sensor", title: "Sensor consistency warning"});
+  if (i === 3) events.push({sample_index: 84, category: "battery", title: "Battery reserve below 25%"});
+  return events.sort((a,b) => a.sample_index - b.sample_index).map(event => ({...event, timestamp: samples[event.sample_index].timestamp}));
 }
 
 function snapshotFor(s) {
@@ -210,7 +263,8 @@ export class FleetRoom extends DurableObject {
       if (!flight) return error("Flight not found", 404);
       const i = fleet.findIndex((craft) => craft[0] === flight.aircraft_id);
       const start = Date.parse(flight.started_at);
-      return json({...flight, samples: Array.from({length: 90}, (_, t) => samplesFor(t + 1, "normal", iso(start + t * 8000))[i])});
+      const samples = replaySamplesFor(flight, i);
+      return json({...flight, samples, events: replayEventsFor(i, samples)});
     }
     const aircraftMatch = /^\/api\/aircraft\/(UAV-\d{3})\/telemetry$/.exec(path);
     if (aircraftMatch && request.method === "GET") {

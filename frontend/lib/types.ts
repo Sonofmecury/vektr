@@ -15,7 +15,8 @@ export type Alert = {id: string; aircraft_id: string; timestamp: string; categor
 export type Maintenance = {id: string; aircraft_id: string; component: string; inspection_type: string;
   due_at: string; status: string; technician: string; note: string; completed_at: string | null};
 export type Flight = {id: string; aircraft_id: string; started_at: string; ended_at: string; duration_s: number;
-  source: string; sample_count: number; samples?: Telemetry[]};
+  source: string; mission?: string; sample_count: number; samples?: Telemetry[];
+  events?: {sample_index:number; category:string; title:string; timestamp:string}[]};
 export type Analytics = {flight_hours_by_aircraft: {aircraft_id: string; hours: number}[]; completed_flights: number;
   average_flight_minutes: number; alerts_by_category: {category: string; count: number}[];
   battery_health_by_aircraft: {aircraft_id: string; health: number}[];

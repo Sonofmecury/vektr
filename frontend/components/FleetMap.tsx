@@ -9,6 +9,7 @@ export function FleetMap({aircraft, selected, onSelect}: {aircraft: Aircraft[]; 
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, maplibregl.Marker>>(new Map());
   const previousSelection = useRef(selected);
+  const previousBasemap = useRef(basemap);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const fitFleet = () => {
@@ -20,10 +21,9 @@ export function FleetMap({aircraft, selected, onSelect}: {aircraft: Aircraft[]; 
 
   useEffect(() => {
     if (!element.current || map.current) return;
-    maplibregl.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
     const instance = new maplibregl.Map({
       container: element.current,
-      style: {version: 8, sources: {base: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"], tileSize: 256,
+      style: {version: 8, sources: {base: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256,
         attribution: '© <a href="https://www.esri.com">Esri</a>, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}},
         layers: [{id: "base", type: "raster", source: "base"}]},
       center: [7.5, 9.1], zoom: 5.2, minZoom: 3.5, attributionControl: {},
@@ -42,9 +42,11 @@ export function FleetMap({aircraft, selected, onSelect}: {aircraft: Aircraft[]; 
   }, []);
 
   useEffect(() => {
+    if (previousBasemap.current === basemap) return;
+    previousBasemap.current = basemap;
     const source = map.current?.getSource("base") as maplibregl.RasterTileSource | undefined;
     source?.setTiles([basemap === "streets"
-      ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+      ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
       : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"]);
   }, [basemap]);
 
@@ -85,7 +87,7 @@ export function FleetMap({aircraft, selected, onSelect}: {aircraft: Aircraft[]; 
   }, [aircraft, selected]);
 
   return <div className="fleet-map-wrap"><div ref={element} className="fleet-map" role="region" aria-label="Simulated aircraft positions" />
-    <div className="map-layer-switch" role="group" aria-label="Map controls"><button type="button" aria-pressed={basemap === "streets"} onClick={()=>setBasemap("streets")}>Street</button><button type="button" aria-pressed={basemap === "satellite"} onClick={()=>setBasemap("satellite")}>Satellite</button><button type="button" onClick={fitFleet} aria-label="Fit all aircraft on map">Fit fleet</button></div>
+    <div className="map-layer-switch" role="group" aria-label="Map controls"><button type="button" aria-pressed={basemap === "streets"} onClick={()=>setBasemap("streets")}>Base map</button><button type="button" aria-pressed={basemap === "satellite"} onClick={()=>setBasemap("satellite")}>Satellite</button><button type="button" onClick={fitFleet} aria-label="Fit all aircraft on map">Fit fleet</button></div>
     <div className="map-scale-note"><span className="map-scale-dot"/> SIX SIMULATED AIRCRAFT · NIGERIA</div>
   </div>;
 }

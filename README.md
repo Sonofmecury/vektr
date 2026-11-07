@@ -1,6 +1,6 @@
 # Vektr
 
-Vektr is a software-first portfolio demonstration of civilian unmanned aircraft fleet observation. Six fictional aircraft produce deterministic telemetry. The interface links a live map, aircraft health, alerts, stored flight replay, maintenance records, analytics, and a generic interactive 3D model. It does not control aircraft.
+Vektr is a software-first portfolio demonstration of civilian unmanned aircraft fleet observation. Six fictional aircraft produce deterministic telemetry. A product site introduces a separate dark operations console with a live map, aircraft health, alerts, flight replay, maintenance records, analytics, and an interactive 3D model. It does not control aircraft.
 
 **Live demo:** [vektr.ng](https://vektr.ng). The Cloudflare Worker also serves `www.vektr.ng`.
 
@@ -77,6 +77,8 @@ npm run deploy
 
 Cloudflare's `vektr` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes. The domain is registered at OneBit and delegated to Cloudflare. The zone uses Cloudflare's Free plan. The API is served on the same origin, so no production `NEXT_PUBLIC_API_URL` is needed.
 
+The current CLI token can upload the Worker and assets but lacks permission to update zone Worker routes, so `wrangler deploy` reports a route error after upload. Both routes are assigned to `vektr` in the Cloudflare dashboard. Check the uploaded Worker and live domain after each deploy. Route changes must be made from the dashboard or with a token that has zone route permission; do not interpret the CLI exit code alone as a failed code upload.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -85,6 +87,7 @@ Cloudflare's `vektr` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes.
 - [Design](docs/DESIGN.md)
 - [Limitations](docs/LIMITATIONS.md)
 - [Competitor research](docs/COMPETITOR_RESEARCH.md)
+- [Redesign delivery and verification](docs/REDESIGN_DELIVERY.md)
 
 ## Deployment
 

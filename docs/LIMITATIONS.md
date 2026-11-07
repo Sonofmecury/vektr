@@ -9,4 +9,4 @@
 - Historical flights are stored as JSON sample arrays. This is appropriate for the small demo set; larger flight archives need object storage or a partitioned time-series design.
 - Live sample retention is 24 hours, pruned periodically. Recorded flight sessions are retained separately.
 - The map uses a third-party tile service and needs network access. Replacing it with offline tiles is a separate packaging task.
-- The public demo is deployed to Cloudflare Workers. It has fictional data and no administrative write access. `vektr.ng` may remain unavailable until nameserver propagation completes.
+- The public demo is deployed to Cloudflare Workers. It has fictional data and no administrative write access. Both apex and `www.vektr.ng` are routed to the `vektr` Worker in Cloudflare.

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .models import Aircraft, Alert, AuditEvent, Base, Flight, Maintenance, SessionLocal, TelemetrySample, engine, utcnow
-from .simulator import FLEET, Simulator, Telemetry
+from .simulator import FLEET, MISSIONS, Simulator, Telemetry, historic_flight_samples
 
 
 def iso(value: datetime | None) -> str | None:
@@ -34,12 +34,8 @@ def seed(session: Session) -> None:
                                 due_at=now + timedelta(days=5+i*4), status="scheduled",
                                 technician=["T. Bello", "A. Yusuf", "S. Okafor"][i%3],
                                 note="Fictional demo record"))
-        historic = Simulator()
-        samples = []
         start = now - timedelta(days=4+i, hours=2)
-        for t in range(90):
-            sample = historic.step(start + timedelta(seconds=t*8))[i]
-            samples.append(sample.model_dump(mode="json"))
+        samples = historic_flight_samples(i, start)
         session.add(Flight(id=f"FLT-{i+1:04d}", aircraft_id=craft.id, started_at=start,
                            ended_at=start + timedelta(seconds=89*8), samples=samples))
     session.commit()
@@ -120,11 +116,25 @@ def maintenance_dict(item: Maintenance) -> dict:
 
 
 def flight_dict(item: Flight, include_samples: bool = False) -> dict:
-    result = {"id": item.id, "aircraft_id": item.aircraft_id, "started_at": iso(item.started_at),
-              "ended_at": iso(item.ended_at), "duration_s": int((item.ended_at-item.started_at).total_seconds()),
+    demo_index = next((i for i, craft in enumerate(FLEET) if craft.id == item.aircraft_id and item.id == f"FLT-{i+1:04d}"), None)
+    result = {"id": item.id, "aircraft_id": item.aircraft_id, "started_at": iso(as_utc(item.started_at)),
+              "ended_at": iso(as_utc(item.ended_at)), "duration_s": int((item.ended_at-item.started_at).total_seconds()),
               "source": item.source, "sample_count": len(item.samples)}
+    if demo_index is not None:
+        result["mission"] = MISSIONS[demo_index]
     if include_samples:
-        result["samples"] = item.samples
+        samples = historic_flight_samples(demo_index, as_utc(item.started_at)) if demo_index is not None else item.samples
+        result["samples"] = samples
+        if demo_index is not None:
+            events = [(0, "flight", "Flight recording started"), (89, "flight", "Flight recording completed")]
+            if demo_index == 1:
+                events.append((59, "connectivity", "Telemetry delivery delayed"))
+            if demo_index == 2:
+                events.append((43, "sensor", "Sensor consistency warning"))
+            if demo_index == 3:
+                events.append((84, "battery", "Battery reserve below 25%"))
+            result["events"] = [{"sample_index": index, "category": category, "title": title,
+                                 "timestamp": samples[index]["timestamp"]} for index, category, title in sorted(events)]
     return result
 
 
