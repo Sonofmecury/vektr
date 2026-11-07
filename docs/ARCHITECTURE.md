@@ -1,5 +1,20 @@
 # Architecture
 
+## Public Cloudflare demo
+
+```mermaid
+flowchart LR
+  Browser[Static Next.js browser client] -->|assets and REST/SSE| Worker[Cloudflare Worker]
+  Worker --> Assets[Static assets]
+  Worker --> Room[SQLite-backed Durable Object]
+  Room --> Simulator[Deterministic six-aircraft simulator]
+  Room --> State[(Demo state, alerts, recent telemetry)]
+```
+
+The Cloudflare Worker in `edge/` serves the static export and same-origin API. A single Durable Object serializes the shared public demo and persists its state. It emits telemetry over SSE while viewers are connected. Historic fictional flight paths are generated from deterministic seeds when requested. Administrative PATCH operations are disabled in the public version.
+
+## Local FastAPI service
+
 ```mermaid
 flowchart LR
   Browser[Next.js browser client] -->|REST| API[FastAPI]
@@ -18,4 +33,4 @@ SQLAlchemy models represent aircraft, telemetry samples, flights with recorded s
 
 The selected aircraft ID is shared across Overview, Fleet, and Live Operations, so map and list selection update the same detail panel. Historical replay is separate from the live stream and advances through stored samples under one timeline.
 
-The simulator's fault scenarios only alter synthetic observations. There is no command path to real aircraft, flight controller integration, mission planner, or location ingestion. See [Security](SECURITY.md) and [Limitations](LIMITATIONS.md) before considering public hosting.
+The simulator's fault scenarios only alter synthetic observations. There is no command path to real aircraft, flight controller integration, mission planner, or location ingestion. See [Security](SECURITY.md) and [Limitations](LIMITATIONS.md) before considering any real-world integration.

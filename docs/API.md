@@ -1,6 +1,6 @@
 # API
 
-Base URL is `http://127.0.0.1:8000`. FastAPI also serves interactive OpenAPI documentation at `/docs`.
+The local FastAPI base URL is `http://127.0.0.1:8000` and serves interactive OpenAPI documentation at `/docs`. The public Cloudflare Worker serves the same read and demo-control paths on its own origin. Its administrative PATCH endpoints always return 503.
 
 | Method | Path | Purpose | Access |
 | --- | --- | --- | --- |

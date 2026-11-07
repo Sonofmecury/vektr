@@ -18,7 +18,7 @@ export function useFleet() {
   useEffect(() => {
     void refresh();
     const source = new EventSource(`${API}/api/stream`);
-    source.addEventListener("ready", () => {lastMessage.current = Date.now(); setLink("connected");});
+    source.addEventListener("ready", () => {lastMessage.current = Date.now(); setLink("connected"); void refresh();});
     source.addEventListener("heartbeat", () => {lastMessage.current = Date.now(); setLink("connected");});
     source.addEventListener("telemetry", (event) => {
       const message = JSON.parse((event as MessageEvent).data) as {samples: Telemetry[]; alerts: Snapshot["alerts"]};

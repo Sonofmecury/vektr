@@ -2,6 +2,8 @@
 
 UAV Hub is a software-first portfolio demonstration of civilian unmanned aircraft fleet observation. Six fictional aircraft produce deterministic telemetry. The interface links a live map, aircraft health, alerts, stored flight replay, maintenance records, analytics, and a generic interactive 3D model. It does not control aircraft.
 
+**Live demo:** [UAV Hub on Cloudflare](https://uav-hub.mukhtarabdulrazaq-18.workers.dev). `vektr.ng` and `www.vektr.ng` are configured to serve the same Worker after registrar nameserver propagation.
+
 ![UAV Hub desktop overview](docs/screenshots/overview-desktop.png)
 
 [Mobile overview](docs/screenshots/overview-mobile.png) · [3D component explorer](docs/screenshots/aircraft-viewer.png)
@@ -13,7 +15,7 @@ UAV Hub is a software-first portfolio demonstration of civilian unmanned aircraf
 - Server-sent telemetry events, persistent alert evidence with condition deduplication, and delayed or disconnected stream state.
 - Fleet search, filtering, sorting, cards, aircraft records, and selectable 3D components.
 - Six stored fictional flights, synchronized map and altitude replay, analytics from persisted records, and maintenance schedule.
-- Administrative alert and maintenance updates guarded by a configured token, with audit events. Visitors can explore without registration.
+- Local FastAPI administration: alert and maintenance updates guarded by a configured token, with audit events. The public Cloudflare demo disables administrative updates.
 
 ## Run locally
 
@@ -58,6 +60,23 @@ npm run typecheck
 npm run build
 ```
 
+## Cloudflare deployment
+
+The public version uses a static Next.js export and a Cloudflare Worker with a SQLite-backed Durable Object. The Worker serves the frontend and same-origin `/api/*` endpoints. Demo state, evidence-backed alerts, and recent telemetry survive Worker restarts; the six historical flight paths are regenerated deterministically from their fictional seed. Scenario controls affect the shared public demo; no administrative mutations are exposed.
+
+```powershell
+cd frontend
+npm ci
+$env:STATIC_EXPORT='1'
+npm run build
+cd ..\edge
+npm ci
+npm run check
+npm run deploy
+```
+
+Cloudflare's `uav-hub` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes. The domain is registered at OneBit and delegated to Cloudflare nameservers `ace.ns.cloudflare.com` and `deborah.ns.cloudflare.com`. The zone uses Cloudflare's Free plan. The API is served on the same origin, so no production `NEXT_PUBLIC_API_URL` is needed.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -69,4 +88,4 @@ npm run build
 
 ## Deployment
 
-The frontend can run on a static-capable Next.js host; FastAPI needs a persistent Python process for SSE and the simulator. Use managed PostgreSQL, run `alembic upgrade head`, configure `DATABASE_URL`, `CORS_ORIGINS`, and `NEXT_PUBLIC_API_URL`, and restrict administrative actions. Disable `DEMO_CONTROLS_ENABLED` for a public read-only service unless the simulation controls are isolated per visitor. The application has deliberately **not** been deployed publicly.
+For a non-demo service with independent organizations or real integrations, the FastAPI backend needs a persistent Python process and managed PostgreSQL. Run `alembic upgrade head`, configure `DATABASE_URL` and `CORS_ORIGINS`, and replace the shared demo controls with per-user authorization. The Cloudflare deployment is a fictional public portfolio demonstration only.
