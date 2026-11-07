@@ -75,7 +75,7 @@ npm run check
 npm run deploy
 ```
 
-Cloudflare's `uav-hub` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes. The domain is registered at OneBit and delegated to Cloudflare nameservers `ace.ns.cloudflare.com` and `deborah.ns.cloudflare.com`. The zone uses Cloudflare's Free plan. The API is served on the same origin, so no production `NEXT_PUBLIC_API_URL` is needed.
+Cloudflare's `vektr` Worker serves the `vektr.ng/*` and `www.vektr.ng/*` routes. The domain is registered at OneBit and delegated to Cloudflare. The zone uses Cloudflare's Free plan. The API is served on the same origin, so no production `NEXT_PUBLIC_API_URL` is needed.
 
 ## Documentation
 

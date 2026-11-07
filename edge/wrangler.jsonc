@@ -1,5 +1,7 @@
 {
-  "name": "uav-hub",
+  "name": "vektr",
+  "workers_dev": true,
+  "routes": [{"pattern":"vektr.ng/*","zone_name":"vektr.ng"},{"pattern":"www.vektr.ng/*","zone_name":"vektr.ng"}],
   "main": "src/index.js",
   "compatibility_date": "2026-11-07",
   "assets": {
