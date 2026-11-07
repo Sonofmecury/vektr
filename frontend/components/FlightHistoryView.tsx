@@ -1,6 +1,6 @@
 "use client";
 import {useEffect, useMemo, useRef, useState} from "react";
-import * as maplibregl from "maplibre-gl";
+import * as maplibregl from "@/lib/maplibre";
 import type {Flight, Snapshot, Telemetry} from "@/lib/types";
 import {request} from "@/lib/api";
 

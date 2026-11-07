@@ -1,8 +1,9 @@
 import type {ReactNode} from "react";
 
-export type VektrIconName = "overview"|"fleet"|"live"|"flights"|"analytics"|"maintenance"|"alerts"|"system"|"settings";
+export type VektrIconName = "overview"|"plan"|"fleet"|"live"|"flights"|"analytics"|"maintenance"|"alerts"|"system"|"settings";
 
 const drawings:Record<VektrIconName,ReactNode> = {
+  plan:<><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18h8a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h8"/></>,
   overview:<><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></>,
   fleet:<><path d="M12 3l7 4v10l-7 4-7-4V7zM5 7l7 4 7-4M12 11v10"/></>,
   live:<><circle cx="12" cy="12" r="2"/><path d="M7.5 7.5a6.36 6.36 0 000 9M16.5 7.5a6.36 6.36 0 010 9M4.5 4.5a10.6 10.6 0 000 15M19.5 4.5a10.6 10.6 0 010 15"/></>,

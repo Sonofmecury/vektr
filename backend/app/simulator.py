@@ -55,11 +55,11 @@ class AircraftSeed:
 
 FLEET = (
     AircraftSeed("UAV-001", "Aster One", "Aster M4", "Multirotor inspection", 9.0765, 7.3986, 0.0),
-    AircraftSeed("UAV-002", "Meridian Two", "Meridian V2", "VTOL mapping", 10.5105, 7.4165, 0.8),
-    AircraftSeed("UAV-003", "Kestrel Three", "Kestrel F8", "Fixed-wing survey", 9.8965, 8.8583, 1.6),
-    AircraftSeed("UAV-004", "Aster Four", "Aster M4", "Multirotor inspection", 6.5244, 3.3792, 2.4),
-    AircraftSeed("UAV-005", "Atlas Five", "Atlas C2", "Infrastructure survey", 7.3775, 3.9470, 3.2),
-    AircraftSeed("UAV-006", "Meridian Six", "Meridian V2", "VTOL mapping", 11.9964, 8.5167, 4.0),
+    AircraftSeed("UAV-002", "Meridian Two", "Meridian V2", "VTOL mapping", 9.1185, 7.4580, 0.8),
+    AircraftSeed("UAV-003", "Kestrel Three", "Kestrel F8", "Fixed-wing survey", 9.0635, 7.4890, 1.6),
+    AircraftSeed("UAV-004", "Aster Four", "Aster M4", "Multirotor inspection", 9.0270, 7.4250, 2.4),
+    AircraftSeed("UAV-005", "Atlas Five", "Atlas C2", "Infrastructure survey", 9.1120, 7.3430, 3.2),
+    AircraftSeed("UAV-006", "Meridian Six", "Meridian V2", "VTOL mapping", 9.0380, 7.3510, 4.0),
 )
 
 MISSIONS = (

@@ -6,8 +6,9 @@ Implemented against the user-provided master brief and subsequent reference pivo
 
 - A custom `V` aircraft/route symbol, wordmark, SVG variants, favicon, and interface icon family establish a consistent identity. The editable source assets live in `brand/`.
 - The product site uses a generated field survey illustration, a custom React Three Fiber drone scene, and GSAP scroll transitions. The console's aircraft viewer remains an inspection tool. Both honor reduced-motion settings and have readable text outside the canvas.
-- `/platform` provides a map-first fleet overview; `/platform/flights` connects a selectable flight, timeline, telemetry, and map position. Fleet, alerts, maintenance, and analytics use one visual system and coherent status colors.
-- Six aircraft and their histories are deterministic fictional records. The routes are distinct, replayable, and backed by the local simulator or Cloudflare Durable Object rather than random values generated during rendering.
+- `/platform` is a full-window flight workstation. Its instrument rail and fleet list sit beside a satellite map with recorded paths, a reference ring, relative traffic and a simulated camera. Its timeline synchronizes map, camera and instruments. `/platform/plan` edits local draft waypoints and exports GeoJSON.
+- The diagnostics panel renders original multirotor, VTOL, and fixed wing models. Selectable parts highlight geometry. Glass panels show measured simulator fields and maintenance records. The camera is a map rendering, and the climb angle is derived from vertical and ground speeds.
+- Six aircraft and their histories are deterministic fictional records. The exercise uses nearby sites around Abuja to make all six positions legible at the initial satellite extent.
 - The public Worker serves static frontend assets and same-origin API endpoints. Durable Object state makes scenario and alert behavior survive Worker restarts, but the shared demo is not an authenticated fleet service.
 
 ## Verification

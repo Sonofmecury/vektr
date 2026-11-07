@@ -1,7 +1,7 @@
 import {OperationsApp} from "@/components/OperationsApp";
 
 export function generateStaticParams() {
-  return ["fleet", "live", "flights", "analytics", "maintenance", "alerts", "system", "settings"].map(view => ({view}));
+  return ["plan", "fleet", "live", "flights", "analytics", "maintenance", "alerts", "system", "settings"].map(view => ({view}));
 }
 export default async function Page({params}: {params: Promise<{view:string}>}) {
   const {view} = await params;

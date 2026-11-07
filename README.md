@@ -4,16 +4,15 @@ Vektr is a software-first portfolio demonstration of civilian unmanned aircraft 
 
 **Live demo:** [vektr.ng](https://vektr.ng). The Cloudflare Worker also serves `www.vektr.ng`.
 
-![Vektr desktop overview](docs/screenshots/overview-desktop.png)
-
-[Mobile overview](docs/screenshots/overview-mobile.png) · [3D component explorer](docs/screenshots/aircraft-viewer.png)
+[Open the flight console](https://vektr.ng/platform/) · [Mission planning](https://vektr.ng/platform/plan/)
 
 ## What works
 
-- Overview and Live Operations: map markers, selected aircraft telemetry, connection state, and backend-derived fleet counts.
+- Fly workspace: satellite map, aircraft silhouettes, recorded routes and waypoints, relative traffic view, an instrument panel, and a simulated camera rendered from imagery and telemetry.
+- Plan workspace: draft a simulated route, undo points, or export GeoJSON. Route drafts and per-aircraft preflight checks are stored in the browser.
 - Five simulator scenarios: normal, connectivity, battery, sensor, and maintenance. Pause, resume, and reset controls change the backend simulator.
 - Server-sent telemetry events, persistent alert evidence with condition deduplication, and delayed or disconnected stream state.
-- Fleet search, filtering, sorting, cards, aircraft records, and selectable 3D components.
+- Fleet search, filtering, sorting, cards, aircraft records, and interactive multirotor, VTOL, and fixed wing models with selectable components.
 - Six stored fictional flights, synchronized map and altitude replay, analytics from persisted records, and maintenance schedule.
 - Local FastAPI administration: alert and maintenance updates guarded by a configured token, with audit events. The public Cloudflare demo disables administrative updates.
 
@@ -43,12 +42,11 @@ Alternatively run `docker compose up --build` from this directory to start Postg
 
 ## Demo walkthrough
 
-1. Open Overview and select an aircraft on the map or list.
-2. Choose **Connectivity degradation**; the first aircraft becomes delayed, then disconnected, and an evidence-backed alert appears.
-3. Open Alerts to inspect the stored telemetry sample. Change to another scenario to see its specific condition.
-4. Open Flight History, select a recorded session, then play or scrub the map and altitude together.
-5. Open Fleet to inspect health fields and rotate/select components of the generic 3D model.
-6. Open Maintenance and Analytics to inspect stored service records and calculated fleet measures.
+1. Open **Fly** and select an aircraft on the map, fleet list, or traffic plot.
+2. Use the timeline or a numbered map waypoint to replay a sample. The map marker, camera, and instrument readings follow the same sample.
+3. Open **Preflight checklist** or **Inspect 3D airframe** in the left rail to review the selected aircraft.
+4. Open **Plan** to draft and export a survey route. Choose a simulator scenario from **Simulation** to explore how telemetry and alerts change.
+5. Open **File** for Flight History, Maintenance, and Alerts. Open **Analyze** for fleet metrics.
 
 ## Check the build
 
