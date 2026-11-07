@@ -1,6 +1,6 @@
 # Security and trust boundary
 
-UAV Hub is an observation-only portfolio demo. Aircraft identities, routes, status, and faults are fictional. The API has no flight-controller connection, control endpoint, mission execution, or targeting feature.
+Vektr is an observation-only portfolio demo. Aircraft identities, routes, status, and faults are fictional. The API has no flight-controller connection, control endpoint, mission execution, or targeting feature.
 
 The public Cloudflare deployment uses a single shared Durable Object for synthetic scenario controls and explicitly disables administrative PATCH updates. The token-based administration described below applies only to the local FastAPI service.
 

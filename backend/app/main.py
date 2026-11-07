@@ -93,7 +93,7 @@ async def lifespan(_app: FastAPI):
             pass
 
 
-app = FastAPI(title="UAV Hub Observation API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Vektr Observation API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3001,http://127.0.0.1:3001").split(","),
                    allow_credentials=False, allow_methods=["GET", "POST", "PATCH"], allow_headers=["Content-Type", "X-Admin-Token"])
 

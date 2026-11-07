@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./vektr.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {
-  title: "UAV Hub — Intelligence for Every Flight",
+  title: "Vektr — Fleet intelligence in motion",
   description: "Simulated UAV fleet observation, diagnostics and historical analysis.",
 };
 

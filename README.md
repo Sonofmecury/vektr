@@ -1,10 +1,10 @@
-# UAV Hub
+# Vektr
 
-UAV Hub is a software-first portfolio demonstration of civilian unmanned aircraft fleet observation. Six fictional aircraft produce deterministic telemetry. The interface links a live map, aircraft health, alerts, stored flight replay, maintenance records, analytics, and a generic interactive 3D model. It does not control aircraft.
+Vektr is a software-first portfolio demonstration of civilian unmanned aircraft fleet observation. Six fictional aircraft produce deterministic telemetry. The interface links a live map, aircraft health, alerts, stored flight replay, maintenance records, analytics, and a generic interactive 3D model. It does not control aircraft.
 
-**Live demo:** [UAV Hub on Cloudflare](https://uav-hub.mukhtarabdulrazaq-18.workers.dev). `vektr.ng` and `www.vektr.ng` are configured to serve the same Worker after registrar nameserver propagation.
+**Live demo:** [vektr.ng](https://vektr.ng). The Cloudflare Worker also serves `www.vektr.ng`.
 
-![UAV Hub desktop overview](docs/screenshots/overview-desktop.png)
+![Vektr desktop overview](docs/screenshots/overview-desktop.png)
 
 [Mobile overview](docs/screenshots/overview-mobile.png) · [3D component explorer](docs/screenshots/aircraft-viewer.png)
 

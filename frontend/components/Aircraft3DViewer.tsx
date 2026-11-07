@@ -14,7 +14,7 @@ const parts: Record<Part, {title:string; detail:string}> = {
 
 function Aircraft({selected, onSelect}: {selected:Part; onSelect:(p:Part)=>void}) {
   const select = (part:Part) => (event:ThreeEvent<MouseEvent>) => {event.stopPropagation(); onSelect(part);};
-  const material = (part:Part) => ({color:selected===part?"#d9ae68":"#637c86",metalness:.62,roughness:.37});
+  const material = (part:Part) => ({color:selected===part?"#47b492":"#637c86",metalness:.62,roughness:.37});
   const arms = [[-1,-1],[1,-1],[-1,1],[1,1]];
   return <group rotation={[0,.35,0]}>
     <mesh onClick={select("airframe")} castShadow><boxGeometry args={[1.5,.22,.82]}/><meshStandardMaterial {...material("airframe")}/></mesh>
@@ -36,7 +36,7 @@ function Aircraft({selected, onSelect}: {selected:Part; onSelect:(p:Part)=>void}
 export default function Aircraft3DViewer() {
   const [selected,setSelected]=useState<Part>("airframe");
   return <div className="viewer-layout"><div className="viewer-canvas"><Canvas camera={{position:[3.9,2.8,4.7],fov:42}} shadows dpr={[1,1.5]}>
-    <color attach="background" args={["#101c23"]}/><ambientLight intensity={1.5}/><directionalLight position={[3,6,4]} intensity={3.2} castShadow shadow-mapSize={[1024,1024]}/><pointLight position={[-3,1,-3]} intensity={1.4} color="#69c9bf"/>
+    <color attach="background" args={["#e6f5ef"]}/><ambientLight intensity={1.5}/><directionalLight position={[3,6,4]} intensity={3.2} castShadow shadow-mapSize={[1024,1024]}/><pointLight position={[-3,1,-3]} intensity={1.4} color="#69c9bf"/>
     <Aircraft selected={selected} onSelect={setSelected}/><ContactShadows position={[0,-.73,0]} opacity={.35} scale={7} blur={2.6}/><OrbitControls enablePan={false} minDistance={3.1} maxDistance={8} maxPolarAngle={Math.PI*.8}/>
   </Canvas><span className="viewer-hint">DRAG TO ROTATE · SCROLL TO ZOOM · SELECT A COMPONENT</span></div>
   <div className="viewer-details"><div><span className="eyebrow">SELECTED COMPONENT</span><h3>{parts[selected].title}</h3><p>{parts[selected].detail}</p></div><div className="viewer-parts">{(Object.keys(parts) as Part[]).map(part=><button key={part} type="button" className={selected===part?"active":""} onClick={()=>setSelected(part)}>{parts[part].title}</button>)}</div></div></div>;

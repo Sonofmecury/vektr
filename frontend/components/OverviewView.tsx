@@ -2,6 +2,9 @@
 import type {Aircraft, Snapshot} from "@/lib/types";
 import {FleetMap} from "./FleetMap";
 import {TelemetryPanel} from "./TelemetryPanel";
+import dynamic from "next/dynamic";
+
+const DroneShowcase = dynamic(() => import("./DroneShowcase").then(m => m.DroneShowcase), {ssr: false});
 
 function Metric({label, value, unit, tone}: {label: string; value: string | number; unit?: string; tone?: string}) {
   return <div className="metric"><span>{label}</span><strong className={tone || ""}>{value}<small>{unit}</small></strong></div>;
@@ -15,7 +18,7 @@ export function OverviewView({data, selected, onSelect, link}: {data: Snapshot; 
   const openAlerts = data.alerts.filter(a => a.state !== "resolved").length;
   const selectedAircraft = fleet.find(a => a.id === selected);
   return <>
-    <section className="page-heading"><div><span className="eyebrow">OPERATIONS / OVERVIEW</span><h1>Fleet at a glance</h1><p>Monitor simulated aircraft, diagnostics, and recent activity from one workspace.</p></div><div className="heading-aside"><span className="simulation-label">● SIMULATED DATA</span><span>All timestamps shown in UTC</span></div></section>
+    <section className="page-heading overview-heading"><div className="overview-intro"><span className="eyebrow">VEKTR / OPERATIONS INTELLIGENCE</span><h1>Every aircraft.<br/><em>One clear picture.</em></h1><p>Explore simulated positions, fleet health, and flight evidence in one connected workspace.</p><span className="simulation-label">● ILLUSTRATIVE FLEET · NO AIRCRAFT CONTROL</span></div><DroneShowcase/></section>
     <section className="metric-strip" aria-label="Fleet metrics">
       <Metric label="TOTAL AIRCRAFT" value={fleet.length} />
       <Metric label="IN FLIGHT" value={active} tone="metric-positive" />
@@ -26,7 +29,7 @@ export function OverviewView({data, selected, onSelect, link}: {data: Snapshot; 
     </section>
     <div className="overview-grid">
       <div className="overview-main">
-        <section className="panel map-panel"><div className="panel-heading"><div><span className="eyebrow">01 / GEOSPATIAL</span><h2>Fleet positions</h2></div><span className="panel-meta">NIGERIA · {fleet.length} AIRCRAFT</span></div><div className="map-frame"><FleetMap aircraft={fleet} selected={selected} onSelect={onSelect} /><span className="map-caption">Civilian demo fleet · fictional coordinates</span></div></section>
+        <section className="panel map-panel"><div className="panel-heading"><div><span className="eyebrow">LIVE OPERATIONS MAP</span><h2>Where the fleet stands</h2></div><span className="panel-meta">NIGERIA · {fleet.length} AIRCRAFT</span></div><div className="map-frame"><FleetMap aircraft={fleet} selected={selected} onSelect={onSelect} /></div></section>
         <section className="panel fleet-panel"><div className="panel-heading"><div><span className="eyebrow">02 / REGISTRY</span><h2>Aircraft status</h2></div><span className="panel-meta">SELECT TO INSPECT</span></div><div className="fleet-list">{fleet.map(a => <FleetRow key={a.id} aircraft={a} selected={selected === a.id} onSelect={() => onSelect(a.id)} />)}</div></section>
       </div>
       <div className="overview-side">
