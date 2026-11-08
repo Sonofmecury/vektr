@@ -93,8 +93,8 @@ export default function Page() {
                 </pattern>
               </defs>
               <rect width="620" height="270" fill="url(#flight-grid)" />
-              <path d="M34 216C111 223 99 150 172 169S223 52 295 102 387 178 445 102 510 54 584 64" fill="none" stroke="#e5e5e5" strokeWidth="2" />
-              <circle cx="445" cy="102" r="8" fill="#151515" stroke="#fff" strokeWidth="3" />
+              <path d="M34 216C111 223 99 150 172 169S223 52 295 102 387 178 445 102 510 54 584 64" fill="none" stroke="var(--kit-primary-edge)" strokeWidth="2" />
+              <circle cx="445" cy="102" r="8" fill="#151515" stroke="var(--kit-primary-light)" strokeWidth="3" />
               <path d="M445 112V270" stroke="#aaa" strokeDasharray="3 6" />
             </svg>
             <div className="evidence-foot"><span>ROUTE / POSITION</span><span>SELECTED SAMPLE</span></div>

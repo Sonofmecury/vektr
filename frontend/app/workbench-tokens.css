@@ -1,73 +1,183 @@
-/* Vektr workbench palette and glass specifications. */
+/* Workbench adapters. The kit supplies the palette, type and control geometry. */
 .workbench-shell {
-  --bg-root: #05070A;
-  --bg-deep: #07090C;
-  --bg-charcoal: #0B0E12;
-  --bg-panel-solid: #11161C;
-  --bg-panel-soft: rgba(10, 14, 18, 0.72);
-  --bg-panel-softer: rgba(11, 15, 20, 0.58);
-  --bg-panel-glass: rgba(12, 16, 21, 0.52);
-  --bg-panel-elevated: rgba(18, 24, 31, 0.70);
+  --bg-root: var(--kit-black);
+  --bg-deep: #0b0b0b;
+  --bg-charcoal: #101010;
+  --bg-panel-solid: var(--kit-neutral-900);
+  --bg-panel-soft: #171717e8;
+  --bg-panel-softer: #121212e8;
+  --bg-panel-glass: #111111e8;
+  --bg-panel-elevated: #262626ed;
+  --border-soft: var(--kit-neutral-700);
+  --border-medium: var(--kit-neutral-600);
+  --border-strong: #737373;
+  --text-primary: var(--kit-neutral-50);
+  --text-secondary: var(--kit-neutral-300);
+  --text-muted: var(--kit-neutral-400);
+  --text-dim: #737373;
 
-  --border-soft: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent-green: var(--kit-success);
+  --accent-green-soft: #15320f;
+  --accent-green-line: #559448;
+  --accent-orange: var(--kit-warning);
+  --accent-orange-soft: #332100;
+  --accent-orange-line: #946700;
+  --accent-bluegrey: var(--kit-primary-light);
+  --accent-bluegrey-soft: #301515;
+  --danger-soft: #330014;
 
-  --text-primary: #E9EDF2;
-  --text-secondary: #A7B0BA;
-  --text-muted: #7F8995;
-  --text-dim: #5F6872;
+  --radius-overlay: 0px;
+  --radius-panel: 0px;
+  --radius-control: 0px;
+  --radius-tabs: 0px;
+  --radius-chip: 0px;
+  --surface-gradient: var(--bg-deep);
+  --glass-standard: var(--bg-panel-soft);
+  --glass-elevated: #111111f0;
+  --overlay-edge: var(--kit-neutral-600);
 
-  --accent-green: #B8D98A;
-  --accent-green-soft: rgba(184, 217, 138, 0.16);
-  --accent-green-line: rgba(184, 217, 138, 0.55);
-  --accent-orange: #C87442;
-  --accent-orange-soft: rgba(200, 116, 66, 0.18);
-  --accent-orange-line: rgba(200, 116, 66, 0.55);
-  --accent-bluegrey: #8FA4BA;
-  --accent-bluegrey-soft: rgba(143, 164, 186, 0.15);
-  --danger-soft: rgba(190, 80, 72, 0.18);
-
-  --radius-overlay: 18px;
-  --radius-panel: 16px;
-  --radius-control: 12px;
-  --radius-tabs: 14px;
-  --radius-chip: 10px;
-
-  --surface-gradient: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
-    linear-gradient(180deg, rgba(15,18,24,0.88), rgba(9,12,16,0.92));
-  --glass-standard: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
-    rgba(10,14,18,0.56);
-  --glass-standard-shadow: 0 10px 30px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05),
-    inset 0 -1px 0 rgba(255,255,255,0.02);
-  --glass-elevated: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
-    rgba(12,16,21,0.66);
-  --glass-elevated-shadow: 0 14px 42px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07);
-  --segment-selected: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
-    rgba(255,255,255,0.05);
-  --segment-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.18);
-  --overlay-edge: rgba(255,255,255,0.10);
+  --bg: var(--kit-black);
+  --surface: var(--kit-neutral-900);
+  --surface-3: var(--kit-neutral-800);
+  --border: var(--kit-neutral-700);
+  --text: var(--kit-neutral-50);
+  --muted: var(--kit-neutral-300);
+  --muted-2: var(--kit-neutral-400);
+  --accent: var(--kit-primary-light);
 }
+
 .wb-glass, .inspection-card, .wb-history-timeline .deck-timeline {
   background: var(--glass-standard);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-panel);
-  box-shadow: var(--glass-standard-shadow);
-  -webkit-backdrop-filter: blur(18px) saturate(125%);
-  backdrop-filter: blur(18px) saturate(125%);
 }
 .wb-camera, .wb-map-heading, .wb-menu, .inspection-link, .inspection-power {
   background: var(--glass-elevated);
   border-color: var(--overlay-edge);
   border-radius: var(--radius-overlay);
-  box-shadow: var(--glass-elevated-shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(130%);
-  backdrop-filter: blur(24px) saturate(130%);
 }
-.wb-rail button[aria-current="page"], .wb-row[aria-pressed="true"], .wb-icon[aria-pressed="true"],
-.inspection-view-tools button[aria-pressed="true"], .inspection-segments button[aria-pressed="true"] {
-  background: var(--segment-selected);
-  border-color: var(--overlay-edge);
-  box-shadow: var(--segment-shadow);
+
+/* Diagonals on the kit's frames and outlined atoms. Borders follow the cut. */
+:is(.wb-control, .wb-icon, .wb-search, .wb-panel-head, .inspection-card, .wb-view-icon) {
+  clip-path: var(--kit-cut);
+  position: relative;
+}
+:is(.wb-control, .wb-icon, .wb-search, .wb-panel-head, .inspection-card, .wb-view-icon)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, transparent 3.7px, var(--kit-neutral-600) 4.1px 4.8px, transparent 5.3px) top left / 8px 8px no-repeat,
+    linear-gradient(315deg, transparent 3.7px, var(--kit-neutral-600) 4.1px 4.8px, transparent 5.3px) bottom right / 8px 8px no-repeat;
+}
+:is(.wb-control, .wb-icon, .wb-search, .wb-view-icon):focus-visible,
+.wb-search:focus-within {
+  outline-offset: -2px;
+}
+.wb-control, .wb-icon, .wb-search, .workbench-shell select { border-color: var(--border-medium); }
+.wb-panel-head {
+  background: var(--kit-neutral-800);
+  box-shadow: inset 2px 0 var(--kit-primary);
+}
+.wb-panel-head h2, .wb-crumb strong, .wb-view-head h1, .wb-map-heading h1, .wb-record-title {
+  font-family: var(--kit-display);
+}
+.wb-panel-head h2 { letter-spacing: .055em; text-transform: uppercase; }
+.wb-panel-head > span { color: var(--kit-primary-light); }
+.wb-top {
+  border-color: var(--kit-neutral-600);
+  background: var(--kit-black);
+}
+.wb-brand { border-right-color: var(--kit-primary-deep); }
+.wb-crumb span { color: var(--kit-primary-light); }
+.wb-rail button span { letter-spacing: .035em; text-transform: uppercase; }
+.wb-rail button[aria-current="page"] {
+  border-color: var(--kit-primary-deep);
+  background: var(--kit-active);
+  color: var(--kit-neutral-50);
+}
+.wb-rail button[aria-current="page"] svg { color: var(--kit-primary-light); }
+.wb-rail button[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 6px 2px;
+  height: 4px;
+  background: var(--kit-primary-edge);
+  clip-path: polygon(0 75%, 63% 75%, 72% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.wb-row[aria-pressed="true"], .wb-icon[aria-pressed="true"] {
+  background: var(--kit-active);
+  border-color: var(--kit-primary-edge);
   color: var(--text-primary);
+}
+.wb-row[aria-pressed="true"] { box-shadow: inset 2px 0 var(--kit-primary); }
+.wb-fleet-sidebar .wb-row[aria-pressed="true"] > svg { color: var(--kit-primary-light); }
+
+.inspection-title { border-left: 2px solid var(--kit-primary-edge); }
+.inspection-title h1 {
+  font-family: var(--kit-display);
+  font-weight: 700;
+  color: var(--kit-neutral-50);
+  letter-spacing: -.035em;
+}
+.inspection-title > span, .inspection-label { color: var(--kit-primary-light); }
+.inspection-view-tools, .inspection-segments {
+  gap: 0;
+  padding: 0;
+  border-color: var(--kit-neutral-600);
+  background: var(--kit-black);
+  backdrop-filter: none;
+}
+.inspection-view-tools button, .inspection-segments button {
+  font: 550 11px/1.15 var(--kit-body);
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+.inspection-view-tools button + button, .inspection-segments button + button {
+  border-inline-start-color: var(--kit-neutral-600);
+}
+.inspection-view-tools button[aria-pressed="true"], .inspection-segments button[aria-pressed="true"] {
+  background: var(--kit-neutral-50);
+  color: var(--kit-black);
+}
+.inspection-view-tools button[data-action="cutaway"][aria-pressed="true"] svg { color: var(--kit-primary-deep); }
+
+.wb-pill {
+  --tag-ink: var(--text-secondary);
+  --tag-fill: var(--kit-neutral-800);
+  color: var(--tag-ink);
+  background: var(--tag-fill);
+  border-color: color-mix(in srgb, var(--tag-ink) 42%, var(--tag-fill));
+  clip-path: var(--kit-cut);
+  font-family: var(--kit-body);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.wb-pill:is([data-value="active"], [data-value="connected"], [data-value="running"], [data-value="ok"], [data-value="resolved"], [data-value="completed"]) {
+  --tag-ink: var(--accent-green);
+  --tag-fill: var(--accent-green-soft);
+}
+.wb-pill:is([data-value="attention"], [data-value="paused"], [data-value="open"], [data-value="warning"], [data-value="delayed"]) {
+  --tag-ink: var(--accent-orange);
+  --tag-fill: var(--accent-orange-soft);
+}
+.wb-pill:is([data-value="critical"], [data-value="unavailable"], [data-value="disconnected"]) {
+  --tag-ink: var(--kit-error);
+  --tag-fill: var(--danger-soft);
+}
+
+.palette-scrim { background: #000c; }
+.palette, .toast {
+  --surface: var(--kit-neutral-900);
+  --surface-2: var(--kit-neutral-900);
+  --surface-3: var(--kit-neutral-800);
+  --border: var(--kit-neutral-700);
+  --text: var(--kit-neutral-50);
+  --muted: var(--kit-neutral-300);
+  --muted-2: var(--kit-neutral-400);
+  --accent: var(--kit-primary-light);
+  border-color: var(--kit-primary-edge);
+  font-family: var(--kit-body);
 }

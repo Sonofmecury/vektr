@@ -22,8 +22,8 @@
 .wb-fleet-stage .airframe-stage::after {
   inset: 0; height: auto; z-index: 0;
   background:
-    radial-gradient(ellipse at 48% 40%, transparent 34%, rgba(5,7,10,.43) 100%),
-    linear-gradient(0deg, var(--bg-root), transparent 33%, transparent 82%, rgba(5,7,10,.52));
+    radial-gradient(ellipse at 48% 40%, transparent 34%, #0009 100%),
+    linear-gradient(0deg, var(--bg-root), transparent 33%, transparent 82%, #0009);
 }
 .wb-fleet-stage .airframe-hint {
   inset: auto 0 207px;

@@ -101,7 +101,7 @@ export function TrafficView({ fleet, selected, sample, onSelect }: {
         transform={"translate(" + (80 + x / range * 64) + " " + (43 - y / range * 32) + ")"}>
         <title>{craft.name} · {Math.hypot(x, y).toFixed(1)} km</title>
         <circle r="8" fill="transparent" />
-        <circle r={craft.id === selected ? 4 : 3} fill={craft.id === selected ? "#79b4ff" : attention ? "#f3a16b" : "#7cdbbe"} stroke={craft.id === selected ? "#e9f3ff" : "none"} />
+        <circle r={craft.id === selected ? 4 : 3} fill={craft.id === selected ? "var(--kit-primary-edge)" : attention ? "var(--kit-warning)" : "var(--kit-success)"} stroke={craft.id === selected ? "var(--kit-primary-light)" : "none"} />
       </g>)}
     </svg>
   </section>;
@@ -152,10 +152,10 @@ export function ReplayTimeline({ flight, aircraft, sample, replay, index, playin
           <div className="deck-profile-plot">
             <svg viewBox="0 0 600 90" preserveAspectRatio="none" aria-hidden="true">
               <path d="M0 12H600M0 47.5H600M0 83H600M120 0V90M240 0V90M360 0V90M480 0V90" stroke="#ffffff2b" fill="none" vectorEffect="non-scaling-stroke" />
-              <polyline points={points} fill="none" stroke="#8c73c8" strokeWidth="6" vectorEffect="non-scaling-stroke" />
-              <polyline points={points} fill="none" stroke="#f2a55e" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-              {flight?.events?.map(event => <path key={event.sample_index + event.category} d={"M" + x(event.sample_index) + " 0V90"} stroke="#d6a36980" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />)}
-              {replay && <line x1={x(index)} x2={x(index)} y1="0" y2="90" stroke="#7eafff" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
+              <polyline points={points} fill="none" stroke="var(--kit-primary-deep)" strokeWidth="6" vectorEffect="non-scaling-stroke" />
+              <polyline points={points} fill="none" stroke="var(--kit-primary-edge)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+              {flight?.events?.map(event => <path key={event.sample_index + event.category} d={"M" + x(event.sample_index) + " 0V90"} stroke="var(--kit-warning)" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />)}
+              {replay && <line x1={x(index)} x2={x(index)} y1="0" y2="90" stroke="var(--kit-info)" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
             </svg>
             <input aria-label="Flight playback position" type="range" min={0} max={last} value={index} onChange={event => onSeek(Number(event.target.value))} />
           </div>

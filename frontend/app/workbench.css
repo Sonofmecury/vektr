@@ -9,7 +9,7 @@
   background: var(--bg-root);
   color: var(--text-primary);
   color-scheme: dark;
-  font: 500 13px/1.4 "Rethink Sans Variable", system-ui, sans-serif;
+  font: 500 13px/1.4 var(--kit-body);
 }
 .workbench-shell :focus-visible { outline: 2px solid var(--accent-bluegrey); outline-offset: 2px; }
 .workbench-shell h1, .workbench-shell h2, .workbench-shell p { margin: 0; }
@@ -213,14 +213,9 @@
   color: var(--text-secondary); background: var(--bg-panel-glass); font: 10px var(--wb-mono); text-transform: capitalize;
 }
 .wb-pill::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
-.wb-pill:is([data-value="active"], [data-value="connected"], [data-value="running"], [data-value="ok"], [data-value="resolved"], [data-value="completed"]) { color: var(--accent-green); }
-.wb-pill:is([data-value="attention"], [data-value="paused"], [data-value="open"], [data-value="warning"], [data-value="delayed"]) { color: var(--accent-orange); }
-.wb-pill:is([data-value="critical"], [data-value="unavailable"], [data-value="disconnected"]) { color: #ff9f9d; }
 .wb-severity { color: var(--accent-bluegrey); margin: 0 4px; }
 .wb-severity[data-value="warning"] { color: var(--accent-orange); }
-.wb-pill:is([data-value="attention"], [data-value="warning"], [data-value="delayed"]) { background: var(--accent-orange-soft); border-color: var(--accent-orange-line); }
-.wb-pill[data-value="critical"] { background: var(--danger-soft); }
-.wb-severity[data-value="critical"] { color: #ff9f9d; }
+.wb-severity[data-value="critical"] { color: var(--kit-error); }
 .wb-actions, .wb-service, .wb-settings { padding: 8px 11px 11px; }
 .wb-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .wb-settings { display: grid; gap: 8px; justify-items: start; }

@@ -1,0 +1,36 @@
+@font-face {
+  font-family: Nippo;
+  src: url("https://cdn.fontshare.com/wf/2OL4LXA5M5I356SBWVB4LAJG3QBQSZFB/FNR7KF5LLYR7Z3432OX45FC55F3P7ZUU/ETCSFVPIPXRJCW4SFAJPOJ7XY2GSEY2C.woff2") format("woff2");
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Sci-fi UI Kit (Free), Foundation and dark component variants. */
+:root {
+  --kit-body: "Exo 2 Variable", system-ui, sans-serif;
+  --kit-display: Nippo, var(--kit-body);
+  --kit-black: #000;
+  --kit-neutral-900: #171717;
+  --kit-neutral-800: #262626;
+  --kit-neutral-700: #404040;
+  --kit-neutral-600: #525252;
+  --kit-neutral-400: #a3a3a3;
+  --kit-neutral-300: #d4d4d4;
+  --kit-neutral-50: #fafafa;
+  --kit-primary: #ca3535;
+  --kit-primary-light: #e7a2a2;
+  --kit-primary-edge: #d97b7b;
+  --kit-primary-deep: #5f1a1a;
+  --kit-warning: #ffd966;
+  --kit-success: #a8fa91;
+  --kit-info: #83eff5;
+  --kit-error: #ff7a9f;
+  --kit-cut: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  --kit-active: linear-gradient(100deg, #371212, #181010);
+}
+
+:where(.workbench-shell, .flight-deck, .public-site) ::selection {
+  color: var(--kit-black);
+  background: var(--kit-primary-light);
+}

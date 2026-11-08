@@ -26,7 +26,7 @@ function mapStyle(satellite: boolean): maplibre.StyleSpecification {
       },
     },
     layers: [
-      { id: "ground", type: "background", paint: { "background-color": "#191e1a" } },
+      { id: "ground", type: "background", paint: { "background-color": "#171717" } },
       { id: "imagery", type: "raster", source: "imagery", paint: { "raster-brightness-max": 0.76, "raster-saturation": -0.25 } },
     ],
   };
@@ -67,13 +67,13 @@ function addOverlays(map: maplibre.Map) {
   });
   map.addLayer({
     id: "route-halo", type: "line", source: "tracks", filter: ["==", ["get", "selected"], true],
-    paint: { "line-color": "#6f5ace", "line-width": 9, "line-opacity": 0.52 },
+    paint: { "line-color": "#5f1a1a", "line-width": 9, "line-opacity": 0.52 },
   });
   map.addLayer({
     id: "flight-routes", type: "line", source: "tracks",
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": ["case", ["get", "selected"], "#f7a54f", "#c48749"],
+      "line-color": ["case", ["get", "selected"], "#e7a2a2", "#d97b7b"],
       "line-width": ["case", ["get", "selected"], 3, 1.7],
       "line-opacity": ["case", ["get", "selected"], 1, 0.72],
     },
@@ -81,13 +81,13 @@ function addOverlays(map: maplibre.Map) {
   map.addLayer({
     id: "draft-route", type: "line", source: "plan",
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#67dcbe", "line-width": 3, "line-dasharray": [2, 1.5] },
+    paint: { "line-color": "#83eff5", "line-width": 3, "line-dasharray": [2, 1.5] },
   });
   map.addLayer({
     id: "route-points", type: "circle", source: "waypoints",
     paint: {
-      "circle-radius": 7, "circle-color": ["case", ["==", ["get", "draft"], true], "#17524a", "#744c27"],
-      "circle-stroke-color": ["case", ["==", ["get", "draft"], true], "#81e9ca", "#f9ad62"], "circle-stroke-width": 1.5,
+      "circle-radius": 7, "circle-color": ["case", ["==", ["get", "draft"], true], "#17524a", "#5f1a1a"],
+      "circle-stroke-color": ["case", ["==", ["get", "draft"], true], "#83eff5", "#e7a2a2"], "circle-stroke-width": 1.5,
     },
   });
   map.addLayer({
