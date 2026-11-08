@@ -3,7 +3,7 @@
 import { Component, Suspense, useEffect, useRef, useState, type ComponentRef, type ReactNode, type RefObject } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows, Edges, Environment, Lightformer, OrbitControls, RoundedBox } from "@react-three/drei";
-import { Group, PerspectiveCamera, Shape, Vector2, Vector3 } from "three";
+import { Group, PCFShadowMap, PerspectiveCamera, Shape, Vector2, Vector3 } from "three";
 import { request } from "@/lib/api";
 import type { Aircraft, Maintenance, Telemetry } from "@/lib/types";
 import { aircraftShape } from "./AircraftGlyph";
@@ -150,23 +150,23 @@ function Multirotor({ selected, select }: { selected: Part; select: SelectPart }
   </group>;
 }
 
-function Runway({immersive}: {immersive: boolean}) {
+function Runway({immersive, textured = immersive}: {immersive: boolean; textured?: boolean}) {
   return <group position={[0,-.64,0]}>
-    {immersive ? <ApronSurface/> : <>
-      <mesh rotation={[-Math.PI/2,0,0]} receiveShadow><planeGeometry args={[48,48]} /><meshStandardMaterial color="#14202a" roughness={.74} metalness={.31} /></mesh>
-      <gridHelper args={[48,32,"#43525d","#283a45"]} position={[0,.008,0]} />
+    {textured ? <ApronSurface/> : <>
+      <mesh rotation={[-Math.PI/2,0,0]} receiveShadow><planeGeometry args={[48,48]} /><meshStandardMaterial color={immersive ? "#252527" : "#14202a"} roughness={.74} metalness={.31} /></mesh>
+      {!immersive && <gridHelper args={[48,32,"#43525d","#283a45"]} position={[0,.008,0]} />}
     </>}
     {immersive && [-1, 1].flatMap(side => Array.from({length: 9}, (_, i) => (
       <mesh key={side + ":" + i} position={[side * 4.2, .035, -19 + i * 4.8]}>
         <boxGeometry args={[.15,.065,.1]}/>
-        <meshStandardMaterial color="#f1a45e" emissive="#ee9a44" emissiveIntensity={1.45}/>
+        <meshStandardMaterial color="#C87442" emissive="#C87442" emissiveIntensity={.68}/>
       </mesh>
     )))}
     {Array.from({ length: 8 }, (_, i) => <mesh key={i} position={[0,.012,-14+i*4]} rotation={[-Math.PI/2,0,0]}>
-      <planeGeometry args={[.14,1.65]} /><meshStandardMaterial color="#a0a8a5" roughness={.7} />
+      <planeGeometry args={[.14,1.65]} /><meshStandardMaterial color={immersive ? "#777775" : "#a0a8a5"} roughness={.7} />
     </mesh>)}
     {[-1,1].map(side => <mesh key={side} position={[side*4.2,.011,0]} rotation={[-Math.PI/2,0,0]}>
-      <planeGeometry args={[.06,45]} /><meshStandardMaterial color="#78908d" />
+      <planeGeometry args={[.06,45]} /><meshStandardMaterial color={immersive ? "#56585b" : "#78908d"} />
     </mesh>)}
   </group>;
 }
@@ -236,20 +236,20 @@ function BatteryProfile({samples}: {samples: Telemetry[]}) {
 }
 
 function PackCutaway({highlighted}: {highlighted: boolean}) {
-  const accent = highlighted ? "#accda2" : "#8694a1";
+  const accent = highlighted ? "#B8D98A" : "#8FA4BA";
   return <group rotation={[0,Math.PI/2,0]}>
     <RoundedBox args={[.86,.17,.43]} radius={.023} smoothness={3}>
-      <meshPhysicalMaterial color="#546d64" transparent opacity={.29} roughness={.26} depthWrite={false}/>
-      <Edges threshold={19} color={accent}/>
+      <meshPhysicalMaterial color="#20282B" transparent opacity={.21} roughness={.32} metalness={.12} clearcoat={.38} depthWrite={false}/>
+      <Edges threshold={24} color={accent} transparent opacity={highlighted ? .6 : .36}/>
     </RoundedBox>
     {[-.27, -.09, .09, .27].map(x => <mesh key={x} rotation={[Math.PI/2,0,0]} position={[x, .012, 0]}>
       <cylinderGeometry args={[.053,.053,.32,16]}/>
-      <meshStandardMaterial color="#537c61" roughness={.33} metalness={.4} emissive="#466f51" emissiveIntensity={highlighted ? .7 : .12}/>
-      <Edges threshold={22} color={accent}/>
+      <meshStandardMaterial color="#5D6359" roughness={.42} metalness={.42} emissive={accent} emissiveIntensity={highlighted ? .11 : .025}/>
+      <Edges threshold={29} color={accent} transparent opacity={.38}/>
     </mesh>)}
     <mesh position={[0,-.035,.18]}>
       <boxGeometry args={[.72,.018,.038]}/>
-      <meshStandardMaterial color="#8cab8e" metalness={.6} roughness={.28}/>
+      <meshStandardMaterial color="#515753" metalness={.56} roughness={.41}/>
     </mesh>
   </group>;
 }
@@ -274,6 +274,8 @@ export default function Aircraft3DViewer({ aircraft, maintenance, immersive = fa
   const [cutaway, setCutaway] = useState(false);
   const aircraftId = aircraft?.id;
   const telemetry = aircraft?.telemetry;
+  const charge = telemetry?.battery.percentage;
+  const reserve = charge == null ? "unknown" : charge < 25 ? "low" : "nominal";
   const form = aircraftShape(aircraft?.kind ?? "");
   const inspection = maintenance.find(record => record.status !== "completed");
   const useAsset = immersive && form !== "vtol";
@@ -304,22 +306,23 @@ export default function Aircraft3DViewer({ aircraft, maintenance, immersive = fa
   return <section className="airframe-inspection" aria-label="Interactive aircraft model and diagnostics">
     <div className="airframe-stage">
       <Canvas camera={{position: immersive ? [4.1,2.55,6.35] : form === "multirotor" ? [3.9,2.3,4.6] : [5.3,3.6,6.6], fov: 37}}
-        dpr={[1,1.5]} frameloop="demand" shadows
+        dpr={[1,1.5]} frameloop="demand" shadows={immersive ? {type: PCFShadowMap} : true}
         fallback={<div className="airframe-fallback">3D rendering requires WebGL. Aircraft diagnostics remain available.</div>}>
-        <color attach="background" args={[immersive ? "#0b1118" : "#101921"]} />
-        <fog attach="fog" args={[immersive ? "#0b1118" : "#101921",10,29]} />
+        <color attach="background" args={[immersive ? "#07090C" : "#101921"]} />
+        <fog attach="fog" args={[immersive ? "#07090C" : "#101921",10,29]} />
         <StageFraming immersive={immersive} />
-        <ambientLight intensity={immersive ? .35 : .9} />
-        <directionalLight position={[3,6,4]} intensity={immersive ? 2.1 : 2.75} color="#d5e3f0" castShadow shadow-mapSize={[1024,1024]} />
-        <directionalLight position={[-4,3,-5]} intensity={immersive ? 2.5 : 2.15} color="#a1bfde" />
-        <pointLight position={[-2,1,4]} intensity={immersive ? 13 : 7} color="#dba273" distance={8} />
+        <ambientLight intensity={immersive ? .23 : .9} />
+        <directionalLight position={immersive ? [-3,7,4] : [3,6,4]} intensity={immersive ? 2.15 : 2.75} color={immersive ? "#F3EEE9" : "#d5e3f0"}
+          castShadow shadow-mapSize={[1024,1024]} shadow-radius={immersive ? 3 : 1} shadow-normalBias={immersive ? .025 : 0} />
+        <directionalLight position={[-4,3,-5]} intensity={immersive ? 1.62 : 2.15} color={immersive ? "#D5DBE3" : "#a1bfde"} />
+        <pointLight position={[-2,1,4]} intensity={immersive ? 5 : 7} color={immersive ? "#D0A789" : "#dba273"} distance={8} />
         <Environment resolution={128} frames={1}>
-          <Lightformer form="rect" intensity={2.2} color="#d8e8fa" position={[0,4,1]} scale={[8,4,1]} rotation={[Math.PI/2,0,0]} />
-          <Lightformer form="rect" intensity={2} color="#9ac2fa" position={[-5,2,-1]} scale={[4,7,1]} rotation={[0,Math.PI/2,0]} />
-          <Lightformer form="rect" intensity={1.6} color="#f1be8a" position={[4,2,-3]} scale={[5,3,1]} rotation={[0,-Math.PI/2,0]} />
+          <Lightformer form="rect" intensity={immersive ? 2.4 : 2.2} color={immersive ? "#E9EDF2" : "#d8e8fa"} position={[0,4,1]} scale={[8,4,1]} rotation={[Math.PI/2,0,0]} />
+          <Lightformer form="rect" intensity={immersive ? 1.35 : 2} color={immersive ? "#CDD5DE" : "#9ac2fa"} position={[-5,2,-1]} scale={[4,7,1]} rotation={[0,Math.PI/2,0]} />
+          <Lightformer form="rect" intensity={immersive ? .85 : 1.6} color={immersive ? "#DDCBC0" : "#f1be8a"} position={[4,2,-3]} scale={[5,3,1]} rotation={[0,-Math.PI/2,0]} />
         </Environment>
-        <SceneFallback fallback={<Runway immersive={false}/>}>
-          <Suspense fallback={<Runway immersive={false}/>}><Runway immersive={immersive}/></Suspense>
+        <SceneFallback fallback={<Runway immersive={immersive} textured={false}/>}>
+          <Suspense fallback={<Runway immersive={immersive} textured={false}/>}><Runway immersive={immersive}/></Suspense>
         </SceneFallback>
         <group rotation={[0, immersive ? -.43 : -.23, 0]}>
           {useAsset ? <SceneFallback key={form} fallback={fallbackAircraft}>
@@ -336,22 +339,24 @@ export default function Aircraft3DViewer({ aircraft, maintenance, immersive = fa
         <OrbitControls ref={controls} enablePan={false} minDistance={3.5} maxDistance={13} maxPolarAngle={Math.PI/2.05} />
       </Canvas>
       {immersive && <>
-        {aircraft && <span className="airframe-model-tag" ref={componentLabel} aria-hidden="true"><i/>{parts[selected]}</span>}
+        {aircraft && <span className="airframe-model-tag" data-highlight={cutaway && selected === "battery"} ref={componentLabel} aria-hidden="true"><i/>{parts[selected]}</span>}
         <div className="inspection-title"><span>SIMULATED AIRCRAFT / INSPECTION</span><h1>{aircraft?.id ?? "AIRFRAME"}</h1><p>{aircraft?.kind ?? "Component inspection"}</p></div>
         <div className="inspection-view-tools" role="group" aria-label="Aircraft view">
           {useAsset && <><button type="button" aria-pressed={!cutaway} onClick={() => setCutaway(false)}>Surface</button>
-          <button type="button" aria-pressed={cutaway} onClick={() => {setSelected("battery");setCutaway(true);}}><InspectionIcon name="cutaway"/> Cutaway</button></>}
+          <button type="button" data-action="cutaway" aria-pressed={cutaway} onClick={() => {setSelected("battery");setCutaway(true);}}><InspectionIcon name="cutaway"/> Cutaway</button></>}
           <button type="button" title="Reset aircraft view" aria-label="Reset aircraft view" onClick={() => controls.current?.reset()}><InspectionIcon name="reset"/></button>
         </div>
-        <div className="inspection-link inspection-card">
-          <div className="inspection-label"><InspectionIcon name="link"/> Telemetry link <strong>{telemetry ? telemetry.connectivity.signal_quality + "%" : "—"}</strong></div>
-          <SignalTrend history={signalSamples}/>
-          <div className="inspection-link-meta"><span data-link={telemetry?.connectivity.status}><i/>{telemetry?.connectivity.status ?? "No link"}</span><span>{telemetry?.gps_fix ?? "—"} GPS</span></div>
-        </div>
-        <div className="inspection-samples inspection-card">
-          <div className="inspection-label"><InspectionIcon name="battery"/> Recent charge</div>
-          <BatteryProfile samples={signalSamples}/>
-          <div className="inspection-link-meta"><span>{telemetry ? telemetry.battery.percentage + "% now" : "Awaiting samples"}</span><span>{Math.min(24,signalSamples.length)} samples</span></div>
+        <div className="inspection-side">
+          <div className="inspection-link inspection-card">
+            <div className="inspection-label"><InspectionIcon name="link"/> Telemetry link <strong>{telemetry ? telemetry.connectivity.signal_quality + "%" : "—"}</strong></div>
+            <SignalTrend history={signalSamples}/>
+            <div className="inspection-link-meta"><span data-link={telemetry?.connectivity.status}><i/>{telemetry?.connectivity.status ?? "No link"}</span><span>{telemetry?.gps_fix ?? "—"} GPS</span></div>
+          </div>
+          <div className="inspection-samples inspection-card">
+            <div className="inspection-label"><InspectionIcon name="battery"/> Recent charge</div>
+            <BatteryProfile samples={signalSamples}/>
+            <div className="inspection-link-meta"><span>{telemetry ? telemetry.battery.percentage + "% now" : "Awaiting samples"}</span><span>{Math.min(24,signalSamples.length)} samples</span></div>
+          </div>
         </div>
         <div className="airframe-hint">Drag to orbit · Scroll to zoom{cutaway && useAsset ? " · Illustrative cutaway" : ""}</div>
       </>}
@@ -374,7 +379,7 @@ export default function Aircraft3DViewer({ aircraft, maintenance, immersive = fa
           <p>{details[selected]}</p>
           <dl><div><dt>Firmware</dt><dd>{aircraft?.firmware ?? "—"}</dd></div><div><dt>Sensor</dt><dd>{telemetry?.sensor_status ?? "—"}</dd></div></dl>
         </article>
-        <article className="inspection-card inspection-power">
+        <article className="inspection-card inspection-power" data-reserve={reserve}>
           <div className="inspection-label"><InspectionIcon name="battery"/> Battery module</div>
           <div className="inspection-power-main">
             <div><strong>{telemetry?.battery.percentage ?? "—"}<small>%</small></strong><span>State of charge</span></div>

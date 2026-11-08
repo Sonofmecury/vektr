@@ -6,6 +6,7 @@ import "./platform.css";
 import "./flight-deck.css";
 import "./workbench.css";
 import "./inspection.css";
+import "./workbench-tokens.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {

@@ -3,8 +3,8 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
 import type {Flight, Snapshot, Telemetry} from "@/lib/types";
 import {request} from "@/lib/api";
-import {AircraftGlyph} from "./AircraftGlyph";
-import {DeckIcon} from "./DeckIcon";
+import {aircraftShape} from "./AircraftGlyph";
+import {InspectionIcon} from "./InspectionIcon";
 import {ReplayTimeline, formatElapsed} from "./DeckWidgets";
 import {MissionMap, SimulatedCamera} from "./MissionMap";
 
@@ -81,18 +81,18 @@ export function FlightHistoryView({data}: {data: Snapshot}) {
         tracks={tracks} replaySample={current} showTracks showRange satellite={satellite} tilted={tilted} focus={focus}
         waypoints={[]} placing={false} onPlace={() => {}} onSeek={seek}/>
       <div className="wb-map-heading wb-glass">
-        <DeckIcon name="route" size={18}/>
+        <InspectionIcon name="plan" width={18} height={18}/>
         <div><span>RECORDED SIMULATION</span><h1>{flight?.mission || "Flight review"}</h1></div>
       </div>
       <div className="wb-map-tools wb-glass" aria-label="Replay map controls">
-        <button type="button" className="wb-icon" title={satellite ? "Switch to street map" : "Switch to satellite map"} aria-label={satellite ? "Switch to street map" : "Switch to satellite map"} aria-pressed={satellite} onClick={() => setSatellite(v => !v)}><DeckIcon name="layers"/></button>
+        <button type="button" className="wb-icon" title={satellite ? "Switch to street map" : "Switch to satellite map"} aria-label={satellite ? "Switch to street map" : "Switch to satellite map"} aria-pressed={satellite} onClick={() => setSatellite(v => !v)}><InspectionIcon name="layers"/></button>
         <button type="button" className="wb-icon" aria-label="Tilt map" title="Tilt map" aria-pressed={tilted} onClick={() => setTilted(v => !v)}>{tilted ? "3D" : "2D"}</button>
-        <button type="button" className="wb-icon" aria-label="Fit flight path" title="Fit flight path" onClick={() => setFit(v => v + 1)}><DeckIcon name="focus"/></button>
-        <button type="button" className="wb-icon" aria-label="Toggle simulated camera" title="Toggle simulated camera" aria-pressed={camera} onClick={() => setCamera(v => !v)}><DeckIcon name="camera"/></button>
+        <button type="button" className="wb-icon" aria-label="Fit flight path" title="Fit flight path" onClick={() => setFit(v => v + 1)}><InspectionIcon name="focus"/></button>
+        <button type="button" className="wb-icon" aria-label="Toggle simulated camera" title="Toggle simulated camera" aria-pressed={camera} onClick={() => setCamera(v => !v)}><InspectionIcon name="camera"/></button>
       </div>
       {current && camera && <section className="wb-camera wb-glass" data-expanded={expanded} aria-label="Simulated camera">
-        <header><DeckIcon name="camera"/><strong>Simulated camera</strong><span>{flight?.aircraft_id}</span>
-          <button type="button" className="wb-icon" aria-label={expanded ? "Restore camera size" : "Expand camera"} aria-pressed={expanded} onClick={() => setExpanded(v => !v)}><DeckIcon name="expand" size={15}/></button>
+        <header><InspectionIcon name="camera"/><strong>Simulated camera</strong><span>{flight?.aircraft_id}</span>
+          <button type="button" className="wb-icon" aria-label={expanded ? "Restore camera size" : "Expand camera"} aria-pressed={expanded} onClick={() => setExpanded(v => !v)}><InspectionIcon name="expand" width={15} height={15}/></button>
         </header>
         <SimulatedCamera sample={current} expanded={expanded}/>
         <footer><span>{current.position.latitude.toFixed(4)}°, {current.position.longitude.toFixed(4)}°</span><time>{new Date(current.timestamp).toLocaleTimeString("en-GB", {timeZone: "UTC"})} UTC</time></footer>
@@ -106,21 +106,22 @@ export function FlightHistoryView({data}: {data: Snapshot}) {
     </section>
     <aside className="wb-recordings">
       <section className="wb-glass wb-library">
-        <header className="wb-panel-head"><DeckIcon name="route"/><h2>Recordings</h2><span>{rows.length}</span></header>
-        <label className="wb-search"><DeckIcon name="search"/><input aria-label="Search recordings" placeholder="Find a flight" value={query} onChange={e => setQuery(e.target.value)}/></label>
+        <header className="wb-panel-head"><InspectionIcon name="plan"/><h2>Recordings</h2><span>{rows.length}</span></header>
+        <label className="wb-search"><InspectionIcon name="search"/><input aria-label="Search recordings" placeholder="Find a flight" value={query} onChange={e => setQuery(e.target.value)}/></label>
         <div className="wb-rows">{rows.map(row => {
           const craft = data.aircraft.find(item => item.id === row.aircraft_id);
+          const shape = aircraftShape(craft?.kind ?? "");
           return <button type="button" key={row.id} aria-pressed={row.id === flightId} className="wb-row" onClick={() => {
             if (row.id !== flightId) {seek(0); setChosen(row.id); setRecord(undefined);}
           }}>
-            {craft && <AircraftGlyph kind={craft.kind} size={18}/>}
+            {craft && <InspectionIcon name={shape === "fixed" ? "airframe" : shape}/>}
             <span><strong>{row.mission || row.id}</strong><small>{row.id} · {new Date(row.started_at).toLocaleDateString("en-GB", {day: "numeric", month: "short", timeZone: "UTC"})}</small></span>
             <em>{formatElapsed(row.duration_s)}</em>
           </button>;
         })}{!rows.length && <p className="wb-empty">No matching recordings.</p>}</div>
       </section>
       {current && samples && <section className="wb-glass">
-        <header className="wb-panel-head"><DeckIcon name="gauge"/><h2>Recorded telemetry</h2></header>
+        <header className="wb-panel-head"><InspectionIcon name="gauge"/><h2>Recorded telemetry</h2></header>
         <dl className="wb-readouts">
           <div><dt>Battery</dt><dd>{current.battery.percentage}%</dd></div>
           <div><dt>Signal</dt><dd>{current.connectivity.signal_quality}%</dd></div>

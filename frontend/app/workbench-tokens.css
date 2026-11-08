@@ -1,0 +1,73 @@
+/* Vektr workbench palette and glass specifications. */
+.workbench-shell {
+  --bg-root: #05070A;
+  --bg-deep: #07090C;
+  --bg-charcoal: #0B0E12;
+  --bg-panel-solid: #11161C;
+  --bg-panel-soft: rgba(10, 14, 18, 0.72);
+  --bg-panel-softer: rgba(11, 15, 20, 0.58);
+  --bg-panel-glass: rgba(12, 16, 21, 0.52);
+  --bg-panel-elevated: rgba(18, 24, 31, 0.70);
+
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --text-primary: #E9EDF2;
+  --text-secondary: #A7B0BA;
+  --text-muted: #7F8995;
+  --text-dim: #5F6872;
+
+  --accent-green: #B8D98A;
+  --accent-green-soft: rgba(184, 217, 138, 0.16);
+  --accent-green-line: rgba(184, 217, 138, 0.55);
+  --accent-orange: #C87442;
+  --accent-orange-soft: rgba(200, 116, 66, 0.18);
+  --accent-orange-line: rgba(200, 116, 66, 0.55);
+  --accent-bluegrey: #8FA4BA;
+  --accent-bluegrey-soft: rgba(143, 164, 186, 0.15);
+  --danger-soft: rgba(190, 80, 72, 0.18);
+
+  --radius-overlay: 18px;
+  --radius-panel: 16px;
+  --radius-control: 12px;
+  --radius-tabs: 14px;
+  --radius-chip: 10px;
+
+  --surface-gradient: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
+    linear-gradient(180deg, rgba(15,18,24,0.88), rgba(9,12,16,0.92));
+  --glass-standard: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+    rgba(10,14,18,0.56);
+  --glass-standard-shadow: 0 10px 30px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(255,255,255,0.02);
+  --glass-elevated: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+    rgba(12,16,21,0.66);
+  --glass-elevated-shadow: 0 14px 42px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07);
+  --segment-selected: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+    rgba(255,255,255,0.05);
+  --segment-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.18);
+  --overlay-edge: rgba(255,255,255,0.10);
+}
+.wb-glass, .inspection-card, .wb-history-timeline .deck-timeline {
+  background: var(--glass-standard);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--glass-standard-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  backdrop-filter: blur(18px) saturate(125%);
+}
+.wb-camera, .wb-map-heading, .wb-menu, .inspection-link, .inspection-power {
+  background: var(--glass-elevated);
+  border-color: var(--overlay-edge);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--glass-elevated-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  backdrop-filter: blur(24px) saturate(130%);
+}
+.wb-rail button[aria-current="page"], .wb-row[aria-pressed="true"], .wb-icon[aria-pressed="true"],
+.inspection-view-tools button[aria-pressed="true"], .inspection-segments button[aria-pressed="true"] {
+  background: var(--segment-selected);
+  border-color: var(--overlay-edge);
+  box-shadow: var(--segment-shadow);
+  color: var(--text-primary);
+}

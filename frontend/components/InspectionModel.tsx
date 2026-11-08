@@ -38,7 +38,7 @@ export function InspectionModel({type, selected, cutaway, onSelect}: {
     const scale = (type === "fixed" ? 6.6 : 3.48) / bounds.getSize(new Vector3()).x;
     const center = bounds.getCenter(new Vector3());
     const materials: {surface: MeshStandardMaterial; part: InspectionPart; shell: boolean}[] = [];
-    const edges = new LineBasicMaterial({color: "#c1d6e6", transparent: true, opacity: 0});
+    const edges = new LineBasicMaterial({color: "#A7B0BA", transparent: true, opacity: 0});
     const outlines: LineSegments[] = [];
 
     root.traverse(node => {
@@ -49,11 +49,21 @@ export function InspectionModel({type, selected, cutaway, onSelect}: {
       node.castShadow = true;
       node.receiveShadow = true;
       if (surface.name === "shell") {
-        surface.color.set("#75818a");
-        surface.metalness = .55;
-        surface.roughness = .34;
+        surface.color.set("#73777C");
+        surface.metalness = .47;
+        surface.roughness = .39;
       }
-      if (surface.name === "accent") surface.color.set("#39434a");
+      if (surface.name === "accent") surface.color.set("#34383C");
+      if (part === "motors") {
+        surface.color.multiplyScalar(.71);
+        surface.roughness = .58;
+        surface.metalness = .28;
+      }
+      if (surface.name === "canopy" || surface.name === "glass") {
+        surface.color.set("#22252A");
+        surface.roughness = .14;
+        surface.metalness = .18;
+      }
       node.material = surface;
       materials.push({surface, part, shell: surface.name === "shell" || surface.name === "accent"});
       if (["shell", "alloy", "accent", "steel"].includes(surface.name)) {
@@ -73,8 +83,8 @@ export function InspectionModel({type, selected, cutaway, onSelect}: {
   useEffect(() => {
     for (const {surface, part} of model.materials) {
       if (part !== "motors") continue;
-      surface.emissive.set(selected === "motors" ? "#759477" : "#000000");
-      surface.emissiveIntensity = selected === "motors" ? .55 : 0;
+      surface.emissive.set(selected === "motors" ? "#8FA4BA" : "#000000");
+      surface.emissiveIntensity = selected === "motors" ? .24 : 0;
     }
     invalidate();
   }, [model, selected, cutaway, invalidate]);
@@ -128,6 +138,6 @@ export function ApronSurface() {
   useEffect(() => () => texture.dispose(), [texture]);
   return <mesh rotation={[-Math.PI/2,0,0]} receiveShadow>
     <planeGeometry args={[48,48]}/>
-    <meshPhysicalMaterial map={texture} color="#445264" metalness={.1} roughness={.82} clearcoat={.08} clearcoatRoughness={.62} envMapIntensity={.52}/>
+    <meshPhysicalMaterial map={texture} color="#29282A" metalness={.06} roughness={.81} clearcoat={.16} clearcoatRoughness={.63} envMapIntensity={.34}/>
   </mesh>;
 }

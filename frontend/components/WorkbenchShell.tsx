@@ -2,7 +2,6 @@
 
 import {useEffect, useRef, useState, type ReactNode} from "react";
 import type {Snapshot} from "@/lib/types";
-import {DeckIcon} from "./DeckIcon";
 import type {VektrIconName} from "./VektrIcon";
 import {InspectionIcon} from "./InspectionIcon";
 import {VektrLogo, VektrWordmark} from "./VektrLogo";
@@ -48,9 +47,9 @@ export function WorkbenchShell({view, clock, link, data, pages, scenarios, navig
       <a href="/" className="wb-brand" aria-label="Vektr homepage"><VektrLogo size={25}/><VektrWordmark width={72}/></a>
       <div className="wb-crumb"><span>OPERATIONS</span><strong>{pages.find(([id]) => id === view)?.[1] ?? "Workspace"}</strong></div>
       <div className="wb-top-tools">
-        <button type="button" className="wb-icon" aria-label="Search workspace" title="Search workspace" onClick={openSearch}><DeckIcon name="search" size={18}/></button>
+        <button type="button" className="wb-icon" aria-label="Search workspace" title="Search workspace" onClick={openSearch}><InspectionIcon name="search" width={18} height={18}/></button>
         <details className="wb-simulation" ref={simulationMenu}>
-          <summary className="wb-control"><DeckIcon name="settings" size={15}/> Simulation <DeckIcon name="chevron" size={12}/></summary>
+          <summary className="wb-control"><InspectionIcon name="settings" width={15} height={15}/> Simulation <InspectionIcon name="chevron" width={12} height={12}/></summary>
           <div className="wb-menu wb-glass">
             <label>Demo scenario<select disabled={pending || !data} value={data?.simulator.scenario ?? "normal"} onChange={e => void run(() => chooseScenario(e.target.value))}>
               {scenarios.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
