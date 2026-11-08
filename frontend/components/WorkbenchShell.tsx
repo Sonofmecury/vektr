@@ -3,7 +3,8 @@
 import {useEffect, useRef, useState, type ReactNode} from "react";
 import type {Snapshot} from "@/lib/types";
 import {DeckIcon} from "./DeckIcon";
-import {VektrIcon, type VektrIconName} from "./VektrIcon";
+import type {VektrIconName} from "./VektrIcon";
+import {InspectionIcon} from "./InspectionIcon";
 import {VektrLogo, VektrWordmark} from "./VektrLogo";
 
 const shortLabels: Partial<Record<VektrIconName, string>> = {
@@ -64,7 +65,7 @@ export function WorkbenchShell({view, clock, link, data, pages, scenarios, navig
     </header>
     <nav className="wb-rail" aria-label="Operations workspaces">
       {pages.map(([id, label]) => <button type="button" key={id} title={label} aria-label={label} aria-current={view === id ? "page" : undefined} onClick={() => navigate(id)}>
-        <VektrIcon name={id}/><span>{shortLabels[id] ?? label}</span>
+        <InspectionIcon name={id === "live" ? "overview" : id}/><span>{shortLabels[id] ?? label}</span>
         {id === "alerts" && data?.alerts.some(alert => alert.state !== "resolved") && <i/>}
       </button>)}
     </nav>

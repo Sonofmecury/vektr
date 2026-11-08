@@ -23,7 +23,7 @@ function pathFor(view:string) {return view==="overview"?"/platform":`/platform/$
 export function OperationsApp({view:initialView}: {view:string}) {
   const {snapshot, link, error, refresh} = useFleet();
   const [view,setView] = useState(initialView);
-  const [selected,setSelected] = useState("UAV-001");
+  const [selected,setSelected] = useState(initialView === "fleet" ? "UAV-003" : "UAV-001");
   const [token,setToken] = useState("");
   const [palette,setPalette] = useState(false);
   const [search,setSearch] = useState("");

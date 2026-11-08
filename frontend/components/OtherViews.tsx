@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type {Snapshot} from "@/lib/types";
 import {request} from "@/lib/api";
 import {AircraftGlyph} from "./AircraftGlyph";
+import {InspectionIcon} from "./InspectionIcon";
 import {DeckIcon, type DeckIconName} from "./DeckIcon";
 
 const publicDemo = process.env.NEXT_PUBLIC_PUBLIC_DEMO === "true";
@@ -51,6 +52,11 @@ export function FleetView({data, selected, onSelect}: {data: Snapshot; selected:
   const telemetry = craft?.telemetry;
   return <div className="wb-fleet">
     <section className="wb-fleet-stage" aria-label="Aircraft inspection">
+      {craft && <label className="inspection-mobile-picker"><InspectionIcon name="fleet"/> Aircraft
+        <select aria-label="Select aircraft to inspect" value={craft.id} onChange={event => onSelect(event.target.value)}>
+          {data.aircraft.map(aircraft => <option key={aircraft.id} value={aircraft.id}>{aircraft.name} · {aircraft.id}</option>)}
+        </select>
+      </label>}
       <Aircraft3DViewer immersive aircraft={craft} maintenance={data.maintenance.filter(m => m.aircraft_id === craft?.id)}/>
     </section>
     <aside className="wb-fleet-sidebar">
