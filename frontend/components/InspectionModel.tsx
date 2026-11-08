@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useRef} from "react";
+import {Component, useEffect, useMemo, useRef, type ReactNode} from "react";
 import {useGLTF, useTexture} from "@react-three/drei";
 import {Box3, EdgesGeometry, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, RepeatWrapping, Vector3, type Object3D} from "three";
 import {useFrame, useThree, type ThreeEvent} from "@react-three/fiber";
@@ -27,7 +27,7 @@ function classify(node: Object3D, type: Airframe): InspectionPart {
 }
 
 export function InspectionModel({type, selected, cutaway, onSelect}: {
-  type: Airframe; selected: InspectionPart; cutaway: boolean; onSelect: (part: InspectionPart) => void;
+  type: Airframe; selected?: InspectionPart; cutaway?: boolean; onSelect?: (part: InspectionPart) => void;
 }) {
   const {scene} = useGLTF(paths[type], false);
   const invalidate = useThree(state => state.invalidate);
@@ -119,9 +119,15 @@ export function InspectionModel({type, selected, cutaway, onSelect}: {
 
   function select(event: ThreeEvent<MouseEvent>) {
     event.stopPropagation();
-    if (event.delta <= 4) onSelect(event.object.userData.inspectionPart ?? "airframe");
+    if (event.delta <= 4) onSelect?.(event.object.userData.inspectionPart ?? "airframe");
   }
-  return <primitive object={model.root} onClick={select}/>;
+  return <primitive object={model.root} onClick={onSelect ? select : undefined}/>;
+}
+
+export class SceneFallback extends Component<{children: ReactNode; fallback: ReactNode}, {failed: boolean}> {
+  state = {failed: false};
+  static getDerivedStateFromError() {return {failed: true};}
+  render() {return this.state.failed ? this.props.fallback : this.props.children;}
 }
 
 export function ApronSurface() {

@@ -1,8 +1,14 @@
 "use client";
-import {useEffect, useRef, useState} from "react";
+import {Suspense, useEffect, useRef, useState} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
-import {OrbitControls} from "@react-three/drei";
+import {Html, OrbitControls} from "@react-three/drei";
 import type {Group} from "three";
+import {Multirotor, WingAircraft} from "./AircraftGeometry";
+import {InspectionModel, SceneFallback} from "./InspectionModel";
+
+export type ShowcaseModel = "concept" | "multirotor" | "vtol" | "fixed";
+
+const showcaseCamera = {position: [4.9, 3.25, 5.8] as [number, number, number], fov: 38};
 
 function Drone({reduced}: {reduced:boolean}) {
   const body = useRef<Group>(null);
@@ -38,20 +44,44 @@ function Drone({reduced}: {reduced:boolean}) {
   </group>;
 }
 
-export function DroneShowcase({publicSite = false}: {publicSite?:boolean}) {
+function FleetModel({model}: {model: Exclude<ShowcaseModel, "concept">}) {
+  const fallback = model === "multirotor" ? <Multirotor /> : <WingAircraft vtol={model === "vtol"} />;
+  return <group scale={model === "multirotor" ? 1 : .65} rotation={[0, -.4, 0]}>
+    {model === "vtol" ? fallback : <SceneFallback key={model} fallback={fallback}>
+      <Suspense fallback={<Html center><span className="public-aircraft-status" role="status">Loading aircraft…</span></Html>}>
+        <group position={[0, .36, 0]}><InspectionModel type={model} /></group>
+      </Suspense>
+    </SceneFallback>}
+  </group>;
+}
+
+export function DroneShowcase({model}: {model: ShowcaseModel}) {
   const root = useRef<HTMLDivElement>(null);
-  const [visible,setVisible] = useState(true);
-  const [reduced,setReduced] = useState(false);
-  useEffect(()=>{
-    const media=window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update=()=>setReduced(media.matches);
-    update();media.addEventListener("change",update);
-    const observer=new IntersectionObserver(([entry])=>setVisible(entry.isIntersecting),{threshold:.05});
-    if(root.current)observer.observe(root.current);
-    return()=>{media.removeEventListener("change",update);observer.disconnect();};
-  },[]);
-  return <div ref={root} className={`drone-showcase ${publicSite?"public-drone":""}`} aria-label="Interactive illustrative civilian quadcopter model">
-    <div className="drone-scene"><Canvas camera={{position:[4.9,3.25,5.8],fov:38}} dpr={[1,1.5]} frameloop={visible&&!reduced?"always":"demand"}><ambientLight intensity={2.1}/><directionalLight position={[4,6,4]} intensity={3}/><pointLight position={[-3,2,-3]} intensity={2} color="#dfb08a"/><Drone reduced={reduced}/><OrbitControls enablePan={false} enableZoom={false} enableDamping={!reduced}/></Canvas></div>
-    <div className="drone-showcase-label"><span>VEKTR / CONCEPT AIRFRAME</span><strong>Drag to inspect the model</strong></div>
+  const [visible, setVisible] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener("change", update);
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {threshold: .05});
+    if (root.current) observer.observe(root.current);
+    return () => {
+      media.removeEventListener("change", update);
+      observer.disconnect();
+    };
+  }, []);
+  const unavailable = <p className="public-aircraft-placeholder">3D view unavailable on this device.</p>;
+  return <div ref={root} className="public-aircraft-scene">
+    <SceneFallback fallback={unavailable}>
+      <Canvas camera={showcaseCamera} dpr={[1, 1.5]}
+        frameloop={visible && !reduced && model === "concept" ? "always" : "demand"} fallback={unavailable}>
+        <ambientLight intensity={2.1} />
+        <directionalLight position={[4, 6, 4]} intensity={3} />
+        <pointLight position={[-3, 2, -3]} intensity={2} color="#dfb08a" />
+        {model === "concept" ? <Drone reduced={reduced} /> : <FleetModel model={model} />}
+        <OrbitControls enablePan={false} enableZoom={false} enableDamping={!reduced} />
+      </Canvas>
+    </SceneFallback>
   </div>;
 }

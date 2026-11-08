@@ -142,20 +142,54 @@
 
 .airframe-story { background: var(--kit-neutral-900); color: var(--kit-neutral-50); }
 .airframe-story .section-intro > p:not(.public-kicker) { color: #ccc; }
+.public-aircraft-viewer { margin-top: 34px; }
+.public-aircraft-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.public-aircraft-selector button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px clamp(9px, 1.4vw, 19px);
+  border: 1px solid var(--kit-neutral-700);
+  background: var(--kit-neutral-900);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.public-aircraft-selector button:hover { background: var(--kit-active); }
+.public-aircraft-selector button:focus-visible { outline: 2px solid var(--kit-primary-light); outline-offset: 2px; }
+.public-aircraft-selector button[aria-pressed="true"] {
+  border-color: var(--kit-primary-edge);
+  background: var(--kit-active);
+  box-shadow: inset 0 -2px var(--kit-primary-edge);
+}
+.public-aircraft-selector svg { flex: none; color: var(--kit-neutral-300); }
+.public-aircraft-selector button[aria-pressed="true"] svg { color: var(--kit-primary-light); }
+.public-aircraft-selector strong, .public-aircraft-selector small { display: block; }
+.public-aircraft-selector strong { font-size: 15px; }
+.public-aircraft-selector small { margin-top: 2px; color: var(--kit-neutral-300); font-size: 12px; }
 .public-hero-art {
   position: relative;
   height: clamp(350px, 48vw, 670px);
-  margin-top: 34px;
   border: 1px solid #343434;
   background: radial-gradient(ellipse at 50% 44%, var(--kit-neutral-700), var(--kit-black) 72%);
   clip-path: var(--kit-cut);
   overflow: hidden;
 }
-.public-drone { position: absolute !important; inset: 0; min-width: 0 !important; background: transparent !important; }
-.public-drone::before { display: none; }
-.public-drone .drone-scene { inset: 0; }
-.public-drone .drone-showcase-label { left: 20px; bottom: 20px; color: #fff; }
-.public-drone .drone-showcase-label span { color: #bdbdbd; }
+.public-aircraft-scene { position: absolute; inset: 0; }
+.public-aircraft-caption, .public-aircraft-status, .public-aircraft-placeholder {
+  color: var(--kit-neutral-300);
+  font: 500 11px "IBM Plex Mono", monospace;
+}
+.public-aircraft-caption { position: absolute; bottom: 16px; left: 16px; pointer-events: none; }
+.public-aircraft-status { white-space: nowrap; }
+.public-aircraft-placeholder { display: grid; min-height: 100%; place-items: center; text-align: center; }
 
 .evidence-story { background: var(--kit-black); align-items: center; }
 .evidence-graphic { background: var(--kit-neutral-900); color: var(--kit-neutral-50); border: 1px solid var(--kit-neutral-600); clip-path: var(--kit-cut); }
@@ -190,6 +224,8 @@
   .hero-caption br { display: none; }
   .hero-caption span::before { content: " · "; }
   .system-story, .evidence-story { grid-template-columns: minmax(0, 1fr); }
+  .public-aircraft-selector { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-aircraft-selector button { gap: 7px; }
   .public-footer { flex-wrap: wrap; gap: 12px; }
   .public-footer p { width: 100%; order: 1; }
 }

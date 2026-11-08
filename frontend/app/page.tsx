@@ -71,10 +71,10 @@ export default function Page() {
           <div className="section-intro">
             <p className="public-kicker">02 / Aircraft</p>
             <h2>Inspect the airframe.</h2>
-            <p>Rotate the concept quadcopter below, or open the fleet console to see component readings and service history.</p>
+            <p>Switch between aircraft and drag to inspect each one in 3D. Open the fleet console for component readings and service history.</p>
             <a className="section-link" href="/platform/fleet">Open fleet <span aria-hidden="true">↗</span></a>
           </div>
-          <div className="public-hero-art"><PublicDrone /></div>
+          <PublicDrone />
         </section>
 
         <section id="evidence" className="story-section evidence-story">
