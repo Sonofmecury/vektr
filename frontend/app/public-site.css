@@ -48,6 +48,7 @@
   transition: background .18s ease;
 }
 .primary-action:hover, .public-site .primary-action:focus-visible { background: var(--kit-primary-light); }
+.public-site .primary-action:focus-visible { outline-color: var(--kit-black); outline-offset: -3px; }
 .primary-action span { font-size: 18px; }
 .public-header .primary-action { min-height: 39px; font-size: 13px; }
 
@@ -79,7 +80,7 @@
 }
 .public-hero h1 {
   margin: 14px 0 15px;
-  font-size: clamp(57px, 7.6vw, 118px);
+  font-size: clamp(50px, 6.6vw, 100px);
   font-family: var(--kit-display);
   font-weight: 700;
   line-height: .96;
@@ -184,7 +185,7 @@
     background-position: 80% center;
   }
   .public-hero::before { background: linear-gradient(0deg, #000, #100303c7 32%, transparent 77%); }
-  .public-hero h1 { font-size: clamp(48px, 12vw, 68px); }
+  .public-hero h1 { font-size: clamp(40px, 11vw, 65px); }
   .hero-caption { position: static; margin-top: 18px !important; text-align: left; font-size: 11px; }
   .hero-caption br { display: none; }
   .hero-caption span::before { content: " · "; }
