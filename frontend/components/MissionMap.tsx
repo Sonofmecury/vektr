@@ -46,7 +46,7 @@ type MapProps = {
   showRange: boolean;
   satellite: boolean;
   tilted: boolean;
-  focus: { kind: "fleet" | "aircraft"; revision: number };
+  focus: { kind: "fleet" | "aircraft"; revision: number; rightRatio?: number };
   waypoints: Coordinate[];
   placing: boolean;
   onPlace: (point: Coordinate) => void;
@@ -278,7 +278,11 @@ export function MissionMap(props: MapProps) {
     } else {
       tracks.forEach(flight => flight.samples?.forEach(sample => bounds.extend(positionOf(sample))));
     }
-    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: map.getContainer().clientWidth < 550 ? 48 : 94, maxZoom: 12.9, duration: 450 });
+    if (bounds.isEmpty()) return;
+    const width = map.getContainer().clientWidth;
+    const margin = width < 550 ? 48 : 94;
+    const right = width >= 780 && focus.rightRatio ? Math.max(margin, Math.round(width * focus.rightRatio) + 24) : margin;
+    map.fitBounds(bounds, { padding: {top: margin, bottom: margin, left: margin, right}, maxZoom: 12.9, duration: 450 });
   }, [ready, focus]);
 
   return <div className="mission-map-canvas" ref={container} role="region" aria-label="Satellite operations map">

@@ -1,57 +1,137 @@
 "use client";
-import {useEffect, useMemo, useRef, useState} from "react";
-import * as maplibregl from "@/lib/maplibre";
+
+import {useCallback, useEffect, useMemo, useState} from "react";
 import type {Flight, Snapshot, Telemetry} from "@/lib/types";
 import {request} from "@/lib/api";
+import {AircraftGlyph} from "./AircraftGlyph";
+import {DeckIcon} from "./DeckIcon";
+import {ReplayTimeline, formatElapsed} from "./DeckWidgets";
+import {MissionMap, SimulatedCamera} from "./MissionMap";
 
-function ReplayMap({samples, index}: {samples: Telemetry[]; index: number}) {
-  const id = "replay-map";
-  const markerRef = useRef<maplibregl.Marker | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  useEffect(() => {
-    if (!samples.length) return;
-    const map = new maplibregl.Map({container: id,
-      style: {version: 8, sources: {base: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256,
-        attribution: '© <a href="https://www.esri.com">Esri</a>, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}}, layers: [{id:"base",type:"raster",source:"base"}]},
-      center: [samples[0].position.longitude, samples[0].position.latitude], zoom: 12});
-    const marker = new maplibregl.Marker({color: "#d78360"}).setLngLat([samples[0].position.longitude, samples[0].position.latitude]).addTo(map);
-    const coords = samples.map(s => [s.position.longitude, s.position.latitude] as [number, number]);
-    map.on("load", () => {
-      map.addSource("track", {type:"geojson", data: {type:"Feature", properties:{}, geometry:{type:"LineString",coordinates:coords}}});
-      map.addLayer({id:"track", type:"line", source:"track", paint:{"line-color":"#d78360","line-width":2,"line-opacity":0.45}});
-      map.addSource("progress", {type:"geojson", data:{type:"Feature",properties:{},geometry:{type:"LineString",coordinates:coords.slice(0,2)}}});
-      map.addLayer({id:"progress",type:"line",source:"progress",paint:{"line-color":"#f2b294","line-width":4}});
-      const bounds = new maplibregl.LngLatBounds(coords[0], coords[0]); coords.forEach(c => bounds.extend(c));
-      map.fitBounds(bounds, {padding: 60, maxZoom: 13, duration: 0});
-    });
-    markerRef.current = marker; mapRef.current=map;
-    return () => {markerRef.current = null;mapRef.current=null; map.remove();};
-  }, [samples]);
-  useEffect(() => {const s = samples[index]; if (s) markerRef.current?.setLngLat([s.position.longitude, s.position.latitude]);const source=mapRef.current?.getSource("progress") as maplibregl.GeoJSONSource|undefined;if(source)source.setData({type:"Feature",properties:{},geometry:{type:"LineString",coordinates:samples.slice(0,Math.max(index+1,2)).map(row=>[row.position.longitude,row.position.latitude])}});}, [index, samples]);
-  return <div id={id} className="replay-map" aria-label="Recorded simulated flight path" />;
-}
-
-function SeriesChart({samples, index, label, values, color, unit}: {samples: Telemetry[]; index: number; label:string; values:number[]; color:string; unit:string}) {
-  if (!samples.length) return null;
-  const min = Math.min(...values) - 5, max = Math.max(...values) + 5;
-  const points = values.map((v, i) => `${(i/(values.length-1))*100},${55-((v-min)/(max-min))*48}`).join(" ");
-  const x = index/(values.length-1)*100;
-  return <div className="replay-series"><div><span>{label}</span><strong>{values[index].toFixed(label==="ALTITUDE"?1:0)} {unit}</strong></div><svg viewBox="0 0 100 60" preserveAspectRatio="none" className="replay-chart" role="img" aria-label={`${label.toLowerCase()} over flight time`}><path d="M0 58H100" stroke="#52605b" strokeWidth=".4"/><polyline points={points} fill="none" stroke={color} strokeWidth="1.2" vectorEffect="non-scaling-stroke"/><path d={`M${x} 4V58`} stroke="#e8eee7" strokeWidth=".5" strokeDasharray="1 1"/><circle cx={x} cy={55-((values[index]-min)/(max-min))*48} r="1.5" fill="#e8eee7"/></svg></div>;
+function SampleTrend({samples, index, label, metric}: {samples: Telemetry[]; index: number; label: string; metric: (sample: Telemetry) => number}) {
+  const width = 150;
+  const x = (sample: number) => sample * width / Math.max(1, samples.length - 1);
+  const y = (value: number) => 25 - value / 4.5;
+  const path = samples.map((sample, i) => x(i) + "," + y(metric(sample))).join(" ");
+  return <svg viewBox="0 0 150 27" role="img" aria-label={label + " over the recording"}>
+    <path d="M0 3H150M0 14H150M0 25H150" stroke="#a9c9c432"/>
+    <polyline points={path} stroke="currentColor" fill="none" strokeWidth="1.5"/>
+    <path d={"M" + x(index) + " 0v27"} stroke="#e8efed" strokeDasharray="2 2"/>
+  </svg>;
 }
 
 export function FlightHistoryView({data}: {data: Snapshot}) {
-  const [flightId, setFlightId] = useState(data.flights[0]?.id || "");
-  const [flight, setFlight] = useState<Flight | null>(null);
+  const [chosen, setChosen] = useState("");
+  const flightId = data.flights.some(row => row.id === chosen) ? chosen : data.flights[0]?.id ?? "";
+  const [record, setRecord] = useState<{id: string; flight?: Flight; error?: string}>();
+  const [attempt, setAttempt] = useState(0);
+  const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [loadError,setLoadError]=useState("");
-  useEffect(() => {let alive = true; setPlaying(false); setIndex(0);setFlight(null);setLoadError(""); if(!flightId)return;request<Flight>(`/api/flights/${flightId}`).then(f => {if (alive) setFlight(f);}).catch(e=>{if(alive)setLoadError(e instanceof Error?e.message:"Could not load flight")}); return () => {alive = false;};}, [flightId]);
-  useEffect(() => {if (!playing || !flight?.samples?.length) return; const timer = window.setInterval(() => setIndex(i => {if (i >= flight.samples!.length-1) {setPlaying(false); return i;} return Math.min(flight.samples!.length-1, i+speed);}), 160); return () => window.clearInterval(timer);}, [playing, speed, flight]);
-  const samples = useMemo(() => flight?.samples || [], [flight]);
-  const current = samples[index];
-  return <><section className="page-heading"><div><span className="eyebrow">HISTORY / REPLAY</span><h1>Flight review</h1><p>One timeline controls recorded position and altitude. All flights are deterministic simulation data.</p></div><span className="simulation-label">● RECORDED SIMULATION</span></section>
-    <div className="history-layout"><section className="panel flight-index"><div className="panel-heading"><div><span className="eyebrow">FLIGHT SESSIONS</span><h2>Recordings</h2></div></div>{data.flights.map(f => <button key={f.id} type="button" className={`flight-item ${flightId===f.id?"selected":""}`} onClick={() => setFlightId(f.id)}><strong>{f.id}</strong><span>{f.mission||f.aircraft_id}</span><small>{f.aircraft_id} · {new Date(f.started_at).toLocaleDateString("en-GB")}</small></button>)}</section>
-    <div className="history-detail"><section className="panel"><div className="panel-heading"><div><span className="eyebrow">GEOGRAPHIC REPLAY / {flight?.mission||"SIMULATED MISSION"}</span><h2>{flight?.id || "Loading flight"}</h2></div><span className="panel-meta">{flight?.aircraft_id}</span></div>{samples.length ? <ReplayMap samples={samples} index={index}/> : <div className="empty-state">{loadError||"Loading recorded path…"}</div>}</section>
-      <section className="panel replay-controls"><div className="panel-heading"><div><span className="eyebrow">SYNCHRONIZED SERIES</span><h2>Recorded telemetry</h2></div><span className="panel-meta">{current ? new Date(current.timestamp).toLocaleTimeString("en-GB", {timeZone:"UTC"}) : "—"} UTC</span></div>{samples.length>0&&<div className="replay-series-grid"><SeriesChart samples={samples} index={index} label="ALTITUDE" unit="m" color="#d78360" values={samples.map(s=>s.position.altitude_m)}/><SeriesChart samples={samples} index={index} label="BATTERY" unit="%" color="#9fc6a7" values={samples.map(s=>s.battery.percentage)}/><SeriesChart samples={samples} index={index} label="SIGNAL" unit="%" color="#a7bfc5" values={samples.map(s=>s.connectivity.signal_quality)}/></div>}<div className="replay-transport"><button type="button" onClick={() => setPlaying(v => !v)} disabled={!samples.length}>{playing ? "Pause" : "Play"}</button><input aria-label="Flight timeline" type="range" min="0" max={Math.max(0,samples.length-1)} value={index} onChange={e => {setPlaying(false); setIndex(Number(e.target.value));}}/><select aria-label="Playback speed" value={speed} onChange={e => setSpeed(Number(e.target.value))}><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></div><div className="replay-readout">{current ? <><span>POSITION <strong>{current.position.latitude.toFixed(4)}, {current.position.longitude.toFixed(4)}</strong></span><span>SPEED <strong>{current.ground_speed_mps.toFixed(1)} m/s</strong></span><span>LINK <strong>{current.connectivity.status}</strong></span><span>SENSOR <strong>{current.sensor_status}</strong></span></> : null}</div>{Boolean(flight?.events?.length)&&<div className="replay-events"><div className="replay-events-title">FLIGHT EVENTS / SELECT TO SEEK</div>{flight!.events!.map(event=><button key={`${event.category}-${event.sample_index}`} type="button" className={index>=event.sample_index?"passed":""} onClick={()=>{setPlaying(false);setIndex(event.sample_index)}}><span>{String(event.sample_index+1).padStart(2,"0")}</span><strong>{event.title}</strong><small>{new Date(event.timestamp).toLocaleTimeString("en-GB",{timeZone:"UTC"})} UTC</small></button>)}</div>}</section></div></div></>;
+  const [satellite, setSatellite] = useState(true);
+  const [tilted, setTilted] = useState(false);
+  const [camera, setCamera] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [fit, setFit] = useState(0);
+  const flight = record?.id === flightId ? record?.flight : undefined;
+  const error = record?.id === flightId ? record?.error : undefined;
+  const samples = flight?.samples;
+  const last = Math.max(0, (samples?.length ?? 0) - 1);
+  const current = samples?.[Math.min(index, last)];
+  const aircraft = data.aircraft.find(row => row.id === flight?.aircraft_id);
+  const fleet = useMemo(() => aircraft && samples?.[0] ? [{...aircraft, telemetry: samples[0]}] : [], [aircraft, samples]);
+  const tracks = useMemo(() => flight ? [flight] : [], [flight]);
+  const focus = useMemo(() => ({kind: "fleet" as const, revision: fit, rightRatio: camera && !expanded ? .36 : 0}), [fit, flight, camera, expanded]);
+
+  useEffect(() => {
+    if (!flightId) return;
+    const controller = new AbortController();
+    request<Flight>("/api/flights/" + encodeURIComponent(flightId), {signal: controller.signal})
+      .then(result => {if (!controller.signal.aborted) setRecord({id: flightId, flight: result});})
+      .catch((failure: unknown) => {
+        if (!controller.signal.aborted) setRecord({id: flightId, error: failure instanceof Error ? failure.message : "Recording unavailable"});
+      });
+    return () => controller.abort();
+  }, [flightId, attempt]);
+
+  useEffect(() => {
+    if (!playing || !samples || index >= last) return;
+    const interval = Math.max(1, Date.parse(samples[index + 1].timestamp) - Date.parse(samples[index].timestamp));
+    const timer = window.setTimeout(() => {
+      setIndex(index + 1);
+      if (index + 1 >= last) setPlaying(false);
+    }, interval / speed);
+    return () => window.clearTimeout(timer);
+  }, [playing, samples, index, speed, last]);
+
+  const seek = useCallback((sample: number) => {
+    setPlaying(false);
+    setIndex(sample);
+  }, []);
+  function togglePlay() {
+    if (index >= last) setIndex(0);
+    setPlaying(!playing && last > 0);
+  }
+
+  const rows = data.flights.filter(row => [row.id, row.aircraft_id, row.mission].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
+  return <div className="wb-history">
+    <section className="deck-map wb-history-map" aria-label="Flight replay map">
+      <MissionMap fleet={fleet} selected={flight?.aircraft_id ?? ""} onSelect={() => setFit(v => v + 1)}
+        tracks={tracks} replaySample={current} showTracks showRange satellite={satellite} tilted={tilted} focus={focus}
+        waypoints={[]} placing={false} onPlace={() => {}} onSeek={seek}/>
+      <div className="wb-map-heading wb-glass">
+        <DeckIcon name="route" size={18}/>
+        <div><span>RECORDED SIMULATION</span><h1>{flight?.mission || "Flight review"}</h1></div>
+      </div>
+      <div className="wb-map-tools wb-glass" aria-label="Replay map controls">
+        <button type="button" className="wb-icon" title={satellite ? "Switch to street map" : "Switch to satellite map"} aria-label={satellite ? "Switch to street map" : "Switch to satellite map"} aria-pressed={satellite} onClick={() => setSatellite(v => !v)}><DeckIcon name="layers"/></button>
+        <button type="button" className="wb-icon" aria-label="Tilt map" title="Tilt map" aria-pressed={tilted} onClick={() => setTilted(v => !v)}>{tilted ? "3D" : "2D"}</button>
+        <button type="button" className="wb-icon" aria-label="Fit flight path" title="Fit flight path" onClick={() => setFit(v => v + 1)}><DeckIcon name="focus"/></button>
+        <button type="button" className="wb-icon" aria-label="Toggle simulated camera" title="Toggle simulated camera" aria-pressed={camera} onClick={() => setCamera(v => !v)}><DeckIcon name="camera"/></button>
+      </div>
+      {current && camera && <section className="wb-camera wb-glass" data-expanded={expanded} aria-label="Simulated camera">
+        <header><DeckIcon name="camera"/><strong>Simulated camera</strong><span>{flight?.aircraft_id}</span>
+          <button type="button" className="wb-icon" aria-label={expanded ? "Restore camera size" : "Expand camera"} aria-pressed={expanded} onClick={() => setExpanded(v => !v)}><DeckIcon name="expand" size={15}/></button>
+        </header>
+        <SimulatedCamera sample={current} expanded={expanded}/>
+        <footer><span>{current.position.latitude.toFixed(4)}°, {current.position.longitude.toFixed(4)}°</span><time>{new Date(current.timestamp).toLocaleTimeString("en-GB", {timeZone: "UTC"})} UTC</time></footer>
+      </section>}
+      <div className="wb-map-key wb-glass"><i/> Flight path <i/> 1 km range</div>
+    </section>
+    <section className="wb-history-timeline" aria-label="Recording transport">
+      <ReplayTimeline flight={flight} aircraft={aircraft} sample={current} replay index={index} playing={playing} speed={speed}
+        loading={!!flightId && !flight && !error} error={error ?? ""} onSeek={seek} onPlay={togglePlay} onSpeed={setSpeed}/>
+      {error && <button type="button" className="wb-control wb-retry" onClick={() => {setRecord(undefined); setAttempt(v => v + 1);}}>Retry recording</button>}
+    </section>
+    <aside className="wb-recordings">
+      <section className="wb-glass wb-library">
+        <header className="wb-panel-head"><DeckIcon name="route"/><h2>Recordings</h2><span>{rows.length}</span></header>
+        <label className="wb-search"><DeckIcon name="search"/><input aria-label="Search recordings" placeholder="Find a flight" value={query} onChange={e => setQuery(e.target.value)}/></label>
+        <div className="wb-rows">{rows.map(row => {
+          const craft = data.aircraft.find(item => item.id === row.aircraft_id);
+          return <button type="button" key={row.id} aria-pressed={row.id === flightId} className="wb-row" onClick={() => {
+            if (row.id !== flightId) {seek(0); setChosen(row.id); setRecord(undefined);}
+          }}>
+            {craft && <AircraftGlyph kind={craft.kind} size={18}/>}
+            <span><strong>{row.mission || row.id}</strong><small>{row.id} · {new Date(row.started_at).toLocaleDateString("en-GB", {day: "numeric", month: "short", timeZone: "UTC"})}</small></span>
+            <em>{formatElapsed(row.duration_s)}</em>
+          </button>;
+        })}{!rows.length && <p className="wb-empty">No matching recordings.</p>}</div>
+      </section>
+      {current && samples && <section className="wb-glass">
+        <header className="wb-panel-head"><DeckIcon name="gauge"/><h2>Recorded telemetry</h2></header>
+        <dl className="wb-readouts">
+          <div><dt>Battery</dt><dd>{current.battery.percentage}%</dd></div>
+          <div><dt>Signal</dt><dd>{current.connectivity.signal_quality}%</dd></div>
+          <div><dt>Link</dt><dd>{current.connectivity.status}</dd></div>
+          <div><dt>Sensor</dt><dd>{current.sensor_status}</dd></div>
+        </dl>
+        <div className="wb-trends">
+          <div><span>Battery</span><SampleTrend samples={samples} index={index} label="Battery level" metric={sample => sample.battery.percentage}/></div>
+          <div><span>Signal</span><SampleTrend samples={samples} index={index} label="Signal quality" metric={sample => sample.connectivity.signal_quality}/></div>
+        </div>
+      </section>}
+    </aside>
+  </div>;
 }

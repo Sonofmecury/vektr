@@ -1,6 +1,6 @@
 import { PublicDrone } from "@/components/PublicDrone";
 import { PublicMotion } from "@/components/PublicMotion";
-import { VektrLogo } from "@/components/VektrLogo";
+import { VektrLogo, VektrWordmark } from "@/components/VektrLogo";
 import "./public-site.css";
 
 const capabilities = [
@@ -27,7 +27,7 @@ export default function Page() {
       <PublicMotion />
       <header className="public-header">
         <a className="public-brand" href="/" aria-label="Vektr home">
-          <VektrLogo size={31} /><strong>VEKTR</strong>
+          <VektrLogo size={31} /><VektrWordmark />
         </a>
         <nav aria-label="Site navigation">
           <a href="#system">Platform</a>
@@ -104,7 +104,7 @@ export default function Page() {
 
       <footer className="public-footer">
         <a className="public-brand" href="/" aria-label="Vektr home">
-          <VektrLogo size={27} /><strong>VEKTR</strong>
+          <VektrLogo size={27} /><VektrWordmark />
         </a>
         <p>Portfolio simulation · Observation only</p>
         <a href="/platform">Open console ↗</a>

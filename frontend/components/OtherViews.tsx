@@ -1,56 +1,267 @@
 "use client";
-import {useEffect, useMemo, useState} from "react";
+
+import {useEffect, useState, type ReactNode} from "react";
 import dynamic from "next/dynamic";
 import type {Snapshot} from "@/lib/types";
 import {request} from "@/lib/api";
-import {FleetRow} from "./FleetRow";
-import {TelemetryPanel} from "./TelemetryPanel";
+import {AircraftGlyph} from "./AircraftGlyph";
+import {DeckIcon, type DeckIconName} from "./DeckIcon";
 
 const publicDemo = process.env.NEXT_PUBLIC_PUBLIC_DEMO === "true";
+const Aircraft3DViewer = dynamic(() => import("./Aircraft3DViewer"), {
+  ssr: false, loading: () => <div className="wb-stage-loading">Loading aircraft model…</div>,
+});
 
-const Aircraft3DViewer = dynamic(() => import("./Aircraft3DViewer"), {ssr:false, loading:()=><div className="viewer-loading">Loading aircraft model…</div>});
-
-function Heading({eyebrow, title, description}: {eyebrow: string; title: string; description: string}) {
-  return <section className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div></section>;
+function Panel({icon, title, meta, children}: {icon: DeckIconName; title: string; meta?: ReactNode; children: ReactNode}) {
+  return <section className="wb-glass">
+    <header className="wb-panel-head"><DeckIcon name={icon}/><h2>{title}</h2>{meta && <span>{meta}</span>}</header>
+    {children}
+  </section>;
 }
 
-export function FleetView({data, selected, onSelect}: {data: Snapshot; selected: string; onSelect: (id:string)=>void}) {
+function ViewHeader({icon, title, status, children}: {icon: DeckIconName; title: string; status?: string; children?: ReactNode}) {
+  return <header className="wb-view-head">
+    <span className="wb-view-icon"><DeckIcon name={icon} size={22}/></span>
+    <div><h1>{title}</h1>{status && <p>{status}</p>}</div>
+    {children && <div className="wb-view-controls">{children}</div>}
+  </header>;
+}
+
+function Readouts({items}: {items: [string, ReactNode][]}) {
+  return <dl className="wb-readouts">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
+}
+
+function Pill({value}: {value: string}) {
+  return <span className="wb-pill" data-value={value}>{value.replaceAll("_", " ")}</span>;
+}
+
+function date(value: string) {
+  return new Date(value).toLocaleDateString("en-GB", {timeZone: "UTC"});
+}
+
+export function FleetView({data, selected, onSelect}: {data: Snapshot; selected: string; onSelect: (id: string) => void}) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("id");
   const [mode, setMode] = useState<"list" | "cards">("list");
-  const filtered = useMemo(() => data.aircraft.filter(a => `${a.id} ${a.name} ${a.model}`.toLowerCase().includes(query.toLowerCase()) && (status === "all" || a.telemetry?.status === status)).sort((a,b) => sort === "battery" ? (a.telemetry?.battery.percentage || 0) - (b.telemetry?.battery.percentage || 0) : a.id.localeCompare(b.id)), [data.aircraft, query, status, sort]);
-  const craft = data.aircraft.find(a => a.id === selected);
-  return <><Heading eyebrow="FLEET / REGISTRY" title="Aircraft registry" description="Find aircraft, compare status and inspect individual health records."/><div className="view-toolbar"><input aria-label="Search aircraft" placeholder="Search aircraft ID or model" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter status" value={status} onChange={e=>setStatus(e.target.value)}><option value="all">All status</option><option value="active">Active</option><option value="available">Available</option><option value="attention">Needs attention</option></select><select aria-label="Sort aircraft" value={sort} onChange={e=>setSort(e.target.value)}><option value="id">Sort by ID</option><option value="battery">Battery: lowest first</option></select><div className="segmented"><button type="button" aria-pressed={mode==="list"} onClick={()=>setMode("list")}>List</button><button type="button" aria-pressed={mode==="cards"} onClick={()=>setMode("cards")}>Cards</button></div></div>
-    <div className="fleet-view-grid"><section className="panel"><div className="panel-heading"><div><span className="eyebrow">REGISTERED FLEET</span><h2>{filtered.length} aircraft</h2></div></div><div className={mode==="cards"?"aircraft-cards":"fleet-list"}>{filtered.map(a => mode==="list" ? <FleetRow key={a.id} aircraft={a} selected={selected===a.id} onSelect={()=>onSelect(a.id)}/> : <button type="button" key={a.id} className={`aircraft-card ${selected===a.id?"selected":""}`} onClick={()=>onSelect(a.id)}><span className="eyebrow">{a.id}</span><strong>{a.name}</strong><span>{a.model} · {a.kind}</span><span className={`status-pill ${a.telemetry?.status}`}>{a.telemetry?.status}</span></button>)}</div></section><section className="panel aircraft-detail"><div className="panel-heading"><div><span className="eyebrow">AIRCRAFT PROFILE</span><h2>{craft?.name || "Select aircraft"}</h2></div></div><TelemetryPanel aircraft={craft}/>{craft && <div className="aircraft-record"><div><span>SERIAL</span><strong>{craft.serial}</strong></div><div><span>FIRMWARE</span><strong>{craft.firmware}</strong></div><div><span>FLIGHT HOURS</span><strong>{craft.flight_hours.toFixed(1)} h</strong></div><div><span>BATTERY HEALTH</span><strong>{craft.battery_health}% · {craft.battery_cycles} cycles</strong></div></div>}</section></div><section className="panel aircraft-viewer-panel"><div className="panel-heading"><div><span className="eyebrow">AIRCRAFT / EXPLORER</span><h2>Component context</h2></div><span className="panel-meta">INTERACTIVE 3D / CONCEPT AIRFRAME</span></div><Aircraft3DViewer aircraft={craft} maintenance={data.maintenance.filter(m=>m.aircraft_id===craft?.id)}/></section></>;
+  const filtered = data.aircraft.filter(a => `${a.id} ${a.name} ${a.model}`.toLowerCase().includes(query.toLowerCase()) &&
+    (status === "all" || a.telemetry?.status === status)).sort((a, b) => sort === "battery"
+      ? (a.telemetry?.battery.percentage ?? 0) - (b.telemetry?.battery.percentage ?? 0) : a.id.localeCompare(b.id));
+  const craft = data.aircraft.find(a => a.id === selected) ?? data.aircraft[0];
+  const telemetry = craft?.telemetry;
+  return <div className="wb-fleet">
+    <section className="wb-fleet-stage" aria-label="Aircraft inspection">
+      <Aircraft3DViewer immersive aircraft={craft} maintenance={data.maintenance.filter(m => m.aircraft_id === craft?.id)}/>
+    </section>
+    <aside className="wb-fleet-sidebar">
+      <Panel icon="fleet" title="Aircraft registry" meta={filtered.length}>
+        <div className="wb-fleet-filters">
+          <label className="wb-search"><DeckIcon name="search"/><input aria-label="Search aircraft" placeholder="Find an aircraft" value={query} onChange={e => setQuery(e.target.value)}/></label>
+          <div className="wb-filter-line">
+            <select aria-label="Filter status" value={status} onChange={e => setStatus(e.target.value)}><option value="all">All status</option><option value="active">Active</option><option value="available">Available</option><option value="attention">Needs attention</option></select>
+            <select aria-label="Sort aircraft" value={sort} onChange={e => setSort(e.target.value)}><option value="id">By ID</option><option value="battery">Low battery</option></select>
+            <button type="button" className="wb-icon" aria-pressed={mode === "cards"} aria-label="Toggle aircraft cards" title="Toggle aircraft cards" onClick={() => setMode(v => v === "list" ? "cards" : "list")}><DeckIcon name="fleet"/></button>
+          </div>
+        </div>
+        <div className="wb-rows" data-mode={mode}>{filtered.map(a => <button key={a.id} type="button" className="wb-row" aria-pressed={craft?.id === a.id} onClick={() => onSelect(a.id)}>
+          <AircraftGlyph kind={a.kind} size={18}/><span><strong>{a.name}</strong><small>{a.id} · {a.model}</small></span>
+          <em data-value={a.telemetry?.status}>{a.telemetry ? a.telemetry.battery.percentage + "%" : "—"}</em>
+        </button>)}{!filtered.length && <p className="wb-empty">No matching aircraft.</p>}</div>
+      </Panel>
+      {craft && <Panel icon="inspect" title="Airframe record" meta={<Pill value={telemetry?.status ?? "unknown"}/>}>
+        <Readouts items={[
+          ["Serial", craft.serial], ["Firmware", craft.firmware], ["Flight hours", craft.flight_hours.toFixed(1) + " h"],
+          ["Battery health", craft.battery_health + "%"], ["Battery cycles", craft.battery_cycles], ["GPS", telemetry ? telemetry.gps_satellites + " sats" : "—"],
+          ["Altitude", telemetry ? telemetry.position.altitude_m.toFixed(1) + " m" : "—"], ["Speed", telemetry ? telemetry.ground_speed_mps.toFixed(1) + " m/s" : "—"],
+          ["Sensor", telemetry?.sensor_status ?? "—"], ["Heading", telemetry ? Math.round(telemetry.heading_deg) + "°" : "—"],
+          ["Position", telemetry ? `${telemetry.position.latitude.toFixed(4)}°, ${telemetry.position.longitude.toFixed(4)}°` : "—"],
+        ]}/>
+      </Panel>}
+    </aside>
+  </div>;
+}
+
+function BarPanel({icon, title, unit, rows, max, tone}: {
+  icon: DeckIconName; title: string; unit: string; rows: {id: string; value: number; label: string}[]; max: number; tone: string;
+}) {
+  return <Panel icon={icon} title={title} meta={unit}>
+    {rows.length ? <div className="wb-bars" data-tone={tone}>
+      <div className="wb-bar-axis"><span>0</span><span>{Math.round(max / 2)}</span><span>{max}</span></div>
+      {rows.map(row => <div className="wb-bar-row" key={row.id}><span>{row.id}</span>
+        <div className="wb-bar-track"><i style={{width: Math.min(100, row.value / max * 100) + "%"}}/></div><strong>{row.label}</strong>
+      </div>)}
+    </div> : <p className="wb-empty">No events recorded.</p>}
+  </Panel>;
 }
 
 export function AnalyticsView({data}: {data: Snapshot}) {
-  const maxHours = Math.max(1,...data.analytics.flight_hours_by_aircraft.map(a=>a.hours));
-  return <><Heading eyebrow="INTELLIGENCE / ANALYTICS" title="Fleet performance" description="Metrics reflect fictional flight records, aircraft health and alert history."/><div className="analytics-summary"><div><span>COMPLETED FLIGHTS</span><strong>{data.analytics.completed_flights}</strong></div><div><span>AVERAGE DURATION</span><strong>{data.analytics.average_flight_minutes}<small> min</small></strong></div><div><span>UPCOMING INSPECTIONS</span><strong>{data.analytics.upcoming_inspections}</strong></div><div><span>OVERDUE INSPECTIONS</span><strong>{data.analytics.overdue_inspections}</strong></div></div><div className="analytics-grid"><section className="panel chart-panel"><div className="panel-heading"><div><span className="eyebrow">UTILIZATION</span><h2>Flight hours by aircraft</h2></div></div><div className="bar-list">{data.analytics.flight_hours_by_aircraft.map(a=><div key={a.aircraft_id} className="bar-row"><span>{a.aircraft_id}</span><div><i style={{width:`${a.hours/maxHours*100}%`}}/></div><strong>{a.hours.toFixed(1)} h</strong></div>)}</div></section><section className="panel chart-panel"><div className="panel-heading"><div><span className="eyebrow">HEALTH</span><h2>Battery health</h2></div></div><div className="bar-list">{data.analytics.battery_health_by_aircraft.map(a=><div key={a.aircraft_id} className="bar-row"><span>{a.aircraft_id}</span><div><i style={{width:`${a.health}%`}}/></div><strong>{a.health}%</strong></div>)}</div></section><section className="panel chart-panel"><div className="panel-heading"><div><span className="eyebrow">RELIABILITY</span><h2>Alerts by category</h2></div></div><div className="bar-list">{data.analytics.alerts_by_category.map(a=><div key={a.category} className="bar-row"><span>{a.category}</span><div><i className="amber" style={{width:`${Math.min(100,a.count*20)}%`}}/></div><strong>{a.count}</strong></div>)}</div></section></div></>;
+  const analytics = data.analytics;
+  const hours = analytics.flight_hours_by_aircraft;
+  const categories = analytics.alerts_by_category;
+  return <div className="wb-page">
+    <ViewHeader icon="chart" title="Fleet performance" status="Simulated flight and service records"/>
+    <div className="wb-instrument-strip">
+      {([
+        ["route", "Completed flights", analytics.completed_flights, "flights"],
+        ["gauge", "Average flight", analytics.average_flight_minutes, "min"],
+        ["checklist", "Upcoming inspections", analytics.upcoming_inspections, "scheduled"],
+        ["alert", "Overdue inspections", analytics.overdue_inspections, "overdue"],
+      ] as const).map(([icon, label, value, unit]) => <article className="wb-glass" key={label}>
+        <span><DeckIcon name={icon}/>{label}</span><strong>{value} <small>{unit}</small></strong>
+      </article>)}
+    </div>
+    <div className="wb-chart-grid">
+      <BarPanel icon="route" title="Flight hours by aircraft" unit="HOURS" max={Math.max(10, Math.ceil(Math.max(0, ...hours.map(a => a.hours)) / 10) * 10)} tone="cyan"
+        rows={hours.map(a => ({id: a.aircraft_id, value: a.hours, label: a.hours.toFixed(1) + " h"}))}/>
+      <BarPanel icon="gauge" title="Battery health" unit="PERCENT" max={100} tone="green"
+        rows={analytics.battery_health_by_aircraft.map(a => ({id: a.aircraft_id, value: a.health, label: a.health + "%"}))}/>
+      <BarPanel icon="alert" title="Alerts by category" unit="EVENTS" max={Math.max(2, Math.ceil(Math.max(0, ...categories.map(a => a.count)) / 2) * 2)} tone="amber"
+        rows={categories.map(a => ({id: a.category, value: a.count, label: String(a.count)}))}/>
+    </div>
+  </div>;
 }
 
-export function MaintenanceView({data, token, refresh}: {data: Snapshot; token:string; refresh:()=>Promise<void>}) {
-  const [filter,setFilter]=useState("all"), [message,setMessage]=useState("");
-  const records=data.maintenance.filter(m=>filter==="all"||m.status===filter);
-  async function complete(id:string) {try {await request(`/api/maintenance/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json","X-Admin-Token":token},body:JSON.stringify({status:"completed",note:"Inspection completed in portfolio demo",technician:"Demo administrator"})});setMessage("Inspection saved.");await refresh();}catch(e){setMessage(e instanceof Error?e.message:"Update failed");}}
-  return <><Heading eyebrow="OPERATIONS / MAINTENANCE" title="Maintenance schedule" description="Fictional inspection records are stored in the database. Admin actions require a configured token."/><div className="view-toolbar"><select aria-label="Filter maintenance" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All records</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option></select><span role="status">{message}</span></div><section className="panel table-panel"><div className="panel-heading"><div><span className="eyebrow">COMPONENT RECORDS</span><h2>{records.length} inspections</h2></div></div><div className="table-scroll"><table><thead><tr><th>Aircraft</th><th>Component</th><th>Inspection</th><th>Due</th><th>Technician</th><th>Status</th><th></th></tr></thead><tbody>{records.map(m=><tr key={m.id}><td>{m.aircraft_id}</td><td>{m.component}</td><td>{m.inspection_type}</td><td>{new Date(m.due_at).toLocaleDateString("en-GB")}</td><td>{m.technician}</td><td><span className={`status-pill ${m.status}`}>{m.status}</span></td><td>{m.status!=="completed"&&<button type="button" disabled={!token} onClick={()=>void complete(m.id)}>Complete</button>}</td></tr>)}</tbody></table></div></section></>;
+export function MaintenanceView({data, token, refresh}: {data: Snapshot; token: string; refresh: () => Promise<void>}) {
+  const [filter, setFilter] = useState("all");
+  const [id, setId] = useState("");
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  const rows = data.maintenance.filter(record => filter === "all" || record.status === filter);
+  const record = rows.find(row => row.id === id) ?? rows[0];
+
+  async function complete(recordId: string) {
+    setPending(true);
+    try {
+      await request(`/api/maintenance/${recordId}`, {method: "PATCH", headers: {"Content-Type": "application/json", "X-Admin-Token": token},
+        body: JSON.stringify({status: "completed", note: "Inspection completed in portfolio demo", technician: "Demo administrator"})});
+      setMessage("Inspection saved.");
+      await refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Update failed");
+    } finally { setPending(false); }
+  }
+
+  return <div className="wb-page">
+    <ViewHeader icon="checklist" title="Maintenance schedule" status={`${data.analytics.upcoming_inspections} upcoming · ${data.analytics.overdue_inspections} overdue`}>
+      <select aria-label="Filter maintenance" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">All records</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option></select>
+    </ViewHeader>
+    <div className="wb-queue">
+      <Panel icon="checklist" title="Inspection queue" meta={rows.length}>
+        <div className="wb-rows">{rows.map(row => <button key={row.id} type="button" className="wb-row" aria-pressed={record?.id === row.id} onClick={() => setId(row.id)}>
+          <DeckIcon name="inspect"/><span><strong>{row.component}</strong><small>{row.aircraft_id} · {row.inspection_type}</small></span><em>{date(row.due_at)}</em>
+        </button>)}{!rows.length && <p className="wb-empty">No inspections match this filter.</p>}</div>
+      </Panel>
+      {record && <Panel icon="inspect" title={record.component} meta={<Pill value={record.status}/>}>
+        <div className="wb-record-title">{record.inspection_type}</div>
+        <Readouts items={[["Aircraft", record.aircraft_id], ["Due", date(record.due_at)], ["Technician", record.technician || "Unassigned"], ["Completed", record.completed_at ? date(record.completed_at) : "—"]]}/>
+        {record.note && <p className="wb-note">{record.note}</p>}
+        {!publicDemo && record.status !== "completed" && <div className="wb-actions"><button type="button" disabled={!token || pending} onClick={() => void complete(record.id)}>Complete inspection</button></div>}
+      </Panel>}
+    </div>
+    <p className="wb-note" role="status">{message}</p>
+  </div>;
 }
 
-export function AlertsView({data, token, refresh}: {data:Snapshot; token:string; refresh:()=>Promise<void>}) {
-  const [filter,setFilter]=useState("all"),[query,setQuery]=useState(""),[message,setMessage]=useState("");
-  const rows=data.alerts.filter(a=>(filter==="all"||a.state===filter)&&`${a.description} ${a.aircraft_id}`.toLowerCase().includes(query.toLowerCase()));
-  async function update(id:string,state:"acknowledged"|"resolved") {try{await request(`/api/alerts/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json","X-Admin-Token":token},body:JSON.stringify({state,note:`${state} by demo administrator`})});setMessage(`Alert ${state}.`);await refresh();}catch(e){setMessage(e instanceof Error?e.message:"Update failed");}}
-  return <><Heading eyebrow="INCIDENTS / ALERTS" title="Alert center" description="Alerts arise from backend conditions with deduplication; evidence retains the triggering sample."/><div className="view-toolbar"><input aria-label="Search alerts" placeholder="Search aircraft or description" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter alerts" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All states</option><option value="open">Open</option><option value="acknowledged">Acknowledged</option><option value="resolved">Resolved</option></select><span role="status">{message}</span></div><section className="panel alert-list">{rows.length?rows.map(a=><article key={a.id} className="alert-row"><span className={`severity-marker ${a.severity}`}/><div><div className="alert-row-head"><strong>{a.description}</strong><span className={`status-pill ${a.state}`}>{a.state}</span></div><p>{a.aircraft_id} · {a.category} · {new Date(a.timestamp).toLocaleString("en-GB",{timeZone:"UTC"})} UTC</p><details><summary>Telemetry evidence</summary><pre>{JSON.stringify({battery:a.evidence.sample.battery,connectivity:a.evidence.sample.connectivity,sensor:a.evidence.sample.sensor_status},null,2)}</pre></details></div><div className="alert-actions">{a.state==="open"&&<button disabled={!token} onClick={()=>void update(a.id,"acknowledged")}>Acknowledge</button>}{a.state!=="resolved"&&<button disabled={!token} onClick={()=>void update(a.id,"resolved")}>Resolve</button>}</div></article>):<div className="empty-state">No alerts match this filter. Run a fault scenario to generate evidence.</div>}</section></>;
+export function AlertsView({data, token, refresh}: {data: Snapshot; token: string; refresh: () => Promise<void>}) {
+  const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [id, setId] = useState("");
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  const rows = data.alerts.filter(a => (filter === "all" || a.state === filter) && `${a.description} ${a.aircraft_id}`.toLowerCase().includes(query.toLowerCase()));
+  const alert = rows.find(row => row.id === id) ?? rows[0];
+  const sample = alert?.evidence.sample;
+
+  async function update(alertId: string, state: "acknowledged" | "resolved") {
+    setPending(true);
+    try {
+      await request(`/api/alerts/${alertId}`, {method: "PATCH", headers: {"Content-Type": "application/json", "X-Admin-Token": token},
+        body: JSON.stringify({state, note: `${state} by demo administrator`})});
+      setMessage(`Alert ${state}.`);
+      await refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Update failed");
+    } finally { setPending(false); }
+  }
+
+  return <div className="wb-page">
+    <ViewHeader icon="alert" title="Alert center" status={`${data.alerts.filter(row => row.state === "open").length} open · ${data.alerts.length} total`}>
+      <label className="wb-search"><DeckIcon name="search"/><input aria-label="Search alerts" placeholder="Find an alert" value={query} onChange={e => setQuery(e.target.value)}/></label>
+      <select aria-label="Filter alerts" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">All states</option><option value="open">Open</option><option value="acknowledged">Acknowledged</option><option value="resolved">Resolved</option></select>
+    </ViewHeader>
+    <div className="wb-queue">
+      <Panel icon="alert" title="Event log" meta={rows.length}>
+        <div className="wb-rows">{rows.map(row => <button key={row.id} type="button" className="wb-row" aria-pressed={alert?.id === row.id} onClick={() => setId(row.id)}>
+          <i className="wb-severity" data-value={row.severity}/><span><strong>{row.description}</strong><small>{row.aircraft_id} · {row.category}</small></span><Pill value={row.state}/>
+        </button>)}{!rows.length && <p className="wb-empty">No alerts match this filter. Run a fault scenario from Simulation to generate evidence.</p>}</div>
+      </Panel>
+      {alert && sample && <Panel icon="inspect" title="Telemetry evidence" meta={<Pill value={alert.severity}/>}>
+        <div className="wb-record-title">{alert.description}</div>
+        <Readouts items={[["Aircraft", alert.aircraft_id], ["Category", alert.category], ["Recorded", new Date(alert.timestamp).toLocaleString("en-GB", {timeZone: "UTC"}) + " UTC"],
+          ["Battery", sample.battery.percentage + "%"], ["Voltage", sample.battery.voltage_v + " V"], ["Temperature", sample.battery.temperature_c + " °C"],
+          ["Signal", sample.connectivity.signal_quality + "%"], ["Link", sample.connectivity.status], ["Sensor", sample.sensor_status]]}/>
+        {alert.note && <p className="wb-note">{alert.note}</p>}
+        {!publicDemo && alert.state !== "resolved" && <div className="wb-actions">
+          {alert.state === "open" && <button type="button" disabled={!token || pending} onClick={() => void update(alert.id, "acknowledged")}>Acknowledge</button>}
+          <button type="button" disabled={!token || pending} onClick={() => void update(alert.id, "resolved")}>Resolve</button>
+        </div>}
+      </Panel>}
+    </div>
+    <p className="wb-note" role="status">{message}</p>
+  </div>;
 }
 
-export function SystemView({data, link}: {data:Snapshot;link:string}) {
-  const [status,setStatus]=useState<Record<string,unknown>|null>(null);
-  useEffect(()=>{let active=true;const poll=()=>request<Record<string,unknown>>("/api/system").then(v=>{if(active)setStatus(v);}).catch(()=>{if(active)setStatus({api:"unavailable"});});void poll();const timer=window.setInterval(poll,5000);return()=>{active=false;window.clearInterval(timer);};},[]);
-  return <><Heading eyebrow="PLATFORM / SYSTEM" title="System health" description="Live service checks and simulator instrumentation; no fabricated uptime percentages."/><div className="system-grid"><div className="system-card"><span>API</span><strong>{String(status?.api || "checking")}</strong></div><div className="system-card"><span>DATABASE</span><strong>{String(status?.database || "checking")}</strong></div><div className="system-card"><span>STREAM</span><strong>{link}</strong></div><div className="system-card"><span>SIMULATOR</span><strong>{data.simulator.running?"running":"paused"}</strong></div><div className="system-card"><span>RECORDED SAMPLES</span><strong>{String(status?.telemetry_samples ?? "—")}</strong></div><div className="system-card"><span>DATA AGE</span><strong>{String(status?.telemetry_age_s ?? "—")} s</strong></div><div className="system-card"><span>SUBSCRIBERS</span><strong>{String(status?.stream_subscribers ?? "—")}</strong></div><div className="system-card"><span>PROCESSING ERRORS</span><strong>{String(status?.processing_errors ?? "—")}</strong></div></div></>;
+export function SystemView({data, link}: {data: Snapshot; link: string}) {
+  const [status, setStatus] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    let active = true;
+    const poll = () => request<Record<string, unknown>>("/api/system")
+      .then(value => {if (active) setStatus(value);})
+      .catch(() => {if (active) setStatus({api: "unavailable"});});
+    void poll();
+    const timer = window.setInterval(poll, 5000);
+    return () => {active = false; window.clearInterval(timer);};
+  }, []);
+  const services = [
+    ["Telemetry API", String(status?.api ?? "checking")],
+    ["Database", String(status?.database ?? "checking")],
+    ["Event stream", link],
+    ["Fleet simulator", data.simulator.running ? "running" : "paused"],
+  ];
+  return <div className="wb-page">
+    <ViewHeader icon="live" title="System health" status="Service checks refresh every five seconds"/>
+    <div className="wb-queue">
+      <Panel icon="live" title="Service status">
+        <div className="wb-service">{services.map(([label, state]) => <div key={label}><span>{label}</span><Pill value={state}/></div>)}</div>
+      </Panel>
+      <Panel icon="gauge" title="Stream instrumentation">
+        <Readouts items={[
+          ["Recorded samples", String(status?.telemetry_samples ?? "—")],
+          ["Data age", status?.telemetry_age_s == null ? "—" : String(status.telemetry_age_s) + " s"],
+          ["Subscribers", String(status?.stream_subscribers ?? "—")], ["Processing errors", String(status?.processing_errors ?? "—")],
+          ["Simulator tick", data.simulator.tick], ["Scenario", data.simulator.scenario],
+        ]}/>
+      </Panel>
+    </div>
+  </div>;
 }
 
-export function SettingsView({token,setToken}: {token:string;setToken:(token:string)=>void}) {
-  if (publicDemo) return <><Heading eyebrow="WORKSPACE / SETTINGS" title="Demo settings" description="This public workspace contains fictional aircraft and shared simulation controls."/><section className="panel settings-panel"><div className="panel-heading"><div><span className="eyebrow">ACCESS</span><h2>Public demonstration</h2></div></div><p>Visitors can explore fleet data and run fault scenarios. Alert and maintenance records cannot be edited on the public site.</p></section><section className="panel settings-panel"><div className="panel-heading"><div><span className="eyebrow">BOUNDARY</span><h2>Observation only</h2></div></div><p>Vektr has no aircraft command channel, mission execution, targeting or airworthiness certification. Aircraft and telemetry are entirely fictional.</p></section></>;
-  return <><Heading eyebrow="WORKSPACE / SETTINGS" title="Demo settings" description="This local demo is read-only for visitors. An admin token unlocks record updates when configured on the backend."/><section className="panel settings-panel"><div className="panel-heading"><div><span className="eyebrow">ADMINISTRATION</span><h2>Administrative access</h2></div></div><p>Set <code>ADMIN_TOKEN</code> in the API environment, then enter it here to acknowledge alerts or complete inspections. The token stays only in this page’s memory.</p><label>Admin token<input type="password" value={token} onChange={e=>setToken(e.target.value)} autoComplete="off" placeholder="Configured backend token"/></label><span className="muted">{token?"Token entered for this session":"Read-only demo mode"}</span></section><section className="panel settings-panel"><div className="panel-heading"><div><span className="eyebrow">BOUNDARY</span><h2>Observation only</h2></div></div><p>Vektr has no aircraft command channel, mission execution, targeting or airworthiness certification. Aircraft and telemetry are entirely fictional.</p></section></>;
+export function SettingsView({token, setToken}: {token: string; setToken: (token: string) => void}) {
+  return <div className="wb-page">
+    <ViewHeader icon="settings" title="Workspace settings" status="Vektr Ground Operating System"/>
+    <div className="wb-queue">
+      <Panel icon="inspect" title="Workspace access" meta={<Pill value={publicDemo ? "public" : "local"}/>}>
+        <div className="wb-settings">
+          {publicDemo ? <p>Explore the simulated fleet and run scenarios. Alert and maintenance records are read-only on the public workspace.</p> : <>
+            <p>Enter the configured backend <code>ADMIN_TOKEN</code> to update alerts and inspections. The token is held in this session’s memory.</p>
+            <label>Admin token<input type="password" value={token} onChange={e => setToken(e.target.value)} autoComplete="off" placeholder="Configured backend token"/></label>
+            <Pill value={token ? "token entered" : "read-only"}/>
+          </>}
+        </div>
+      </Panel>
+      <Panel icon="gauge" title="Simulation scope">
+        <Readouts items={[["Aircraft", "Fictional fleet"], ["Telemetry", "Synthetic"], ["Permissions", "Observation and diagnostics"]]}/>
+      </Panel>
+    </div>
+  </div>;
 }

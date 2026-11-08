@@ -109,7 +109,7 @@ export function TrafficView({ fleet, selected, sample, onSelect }: {
 
 export function ReplayTimeline({ flight, aircraft, sample, replay, index, playing, speed, loading, error, onSeek, onPlay, onLive, onSpeed }: {
   flight?: Flight; aircraft?: Aircraft; sample?: Telemetry; replay: boolean; index: number; playing: boolean; speed: number;
-  loading: boolean; error: string; onSeek: (index: number) => void; onPlay: () => void; onLive: () => void; onSpeed: (speed: number) => void;
+  loading: boolean; error: string; onSeek: (index: number) => void; onPlay: () => void; onLive?: () => void; onSpeed: (speed: number) => void;
 }) {
   const samples = flight?.samples ?? [];
   const last = Math.max(0, samples.length - 1);
@@ -137,7 +137,7 @@ export function ReplayTimeline({ flight, aircraft, sample, replay, index, playin
         <select aria-label="Replay speed" value={speed} onChange={event => onSpeed(Number(event.target.value))}>
           {[1, 4, 8, 16, 32].map(rate => <option key={rate} value={rate}>{rate}×</option>)}
         </select>
-        <button type="button" onClick={onLive} disabled={!replay} title="Return to live telemetry"><DeckIcon name="live" size={13} /> Live</button>
+        {onLive && <button type="button" onClick={onLive} disabled={!replay} title="Return to live telemetry"><DeckIcon name="live" size={13} /> Live</button>}
       </div>
     </div>
     <div className="deck-timeline-body">

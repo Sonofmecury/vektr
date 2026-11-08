@@ -4,6 +4,7 @@ import "./globals.css";
 import "./vektr.css";
 import "./platform.css";
 import "./flight-deck.css";
+import "./workbench.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {

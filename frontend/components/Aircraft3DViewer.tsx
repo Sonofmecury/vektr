@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls, RoundedBox } from "@react-three/drei";
-import { PerspectiveCamera, Shape, Vector2 } from "three";
+import { Group, PerspectiveCamera, Shape, Vector2, Vector3 } from "three";
 import { request } from "@/lib/api";
 import type { Aircraft, Maintenance, Telemetry } from "@/lib/types";
 import { aircraftShape } from "./AircraftGlyph";
@@ -148,10 +148,16 @@ function Multirotor({ selected, select }: { selected: Part; select: SelectPart }
   </group>;
 }
 
-function Runway() {
+function Runway({immersive}: {immersive: boolean}) {
   return <group position={[0,-.64,0]}>
     <mesh rotation={[-Math.PI/2,0,0]} receiveShadow><planeGeometry args={[48,48]} /><meshStandardMaterial color="#14202a" roughness={.74} metalness={.31} /></mesh>
-    <gridHelper args={[48,32,"#43525d","#283a45"]} position={[0,.008,0]} />
+    <gridHelper args={[48, immersive ? 12 : 32, "#43525d", immersive ? "#28343c" : "#283a45"]} position={[0,.008,0]} />
+    {immersive && [-1, 1].flatMap(side => Array.from({length: 9}, (_, i) => (
+      <mesh key={side + ":" + i} position={[side * 4.2, .035, -19 + i * 4.8]}>
+        <boxGeometry args={[.15,.065,.1]}/>
+        <meshStandardMaterial color="#f1a45e" emissive="#ee9a44" emissiveIntensity={1.45}/>
+      </mesh>
+    )))}
     {Array.from({ length: 8 }, (_, i) => <mesh key={i} position={[0,.012,-14+i*4]} rotation={[-Math.PI/2,0,0]}>
       <planeGeometry args={[.14,1.65]} /><meshStandardMaterial color="#a0a8a5" roughness={.7} />
     </mesh>)}
@@ -161,14 +167,20 @@ function Runway() {
   </group>;
 }
 
-function StageFraming() {
+function StageFraming({immersive}: {immersive: boolean}) {
   const { camera, invalidate, size } = useThree();
   useEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return;
     camera.zoom = Math.max(.85, Math.min(1.56, size.width / Math.max(1, size.height) * .63));
+    if (immersive && size.width > 680) {
+      camera.zoom = Math.min(1.44, Math.max(1, size.width / size.height * .78));
+      camera.setViewOffset(size.width, size.height, 0, Math.round(size.height * .085), size.width, size.height);
+    } else {
+      camera.clearViewOffset();
+    }
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, invalidate, size.height, size.width]);
+  }, [camera, immersive, invalidate, size.height, size.width]);
   return null;
 }
 
@@ -181,9 +193,30 @@ function SignalTrend({ history }: { history: Telemetry[] }) {
   </svg>;
 }
 
-export default function Aircraft3DViewer({ aircraft, maintenance }: { aircraft?: Aircraft; maintenance: Maintenance[] }) {
+const anchors: Record<ReturnType<typeof aircraftShape>, Record<Part, [number, number, number]>> = {
+  multirotor: {airframe: [0,.2,.18], motors: [1.2,.28,.86], battery: [0,.42,-.18], sensor: [0,-.13,.8]},
+  fixed: {airframe: [0,.33,.31], motors: [0,.03,2.11], battery: [0,.43,-.57], sensor: [0,-.27,1.1]},
+  vtol: {airframe: [0,.33,.31], motors: [1.4,.37,.48], battery: [0,.43,-.57], sensor: [0,-.27,1.1]},
+};
+
+function ComponentAnchor({position, label}: {position: [number, number, number]; label: RefObject<HTMLSpanElement | null>}) {
+  const anchor = useRef<Group>(null);
+  const point = useRef(new Vector3());
+  useFrame(({camera, size}) => {
+    if (!anchor.current || !label.current) return;
+    anchor.current.getWorldPosition(point.current).project(camera);
+    const {x, y, z} = point.current;
+    label.current.style.visibility = z < 1 && z > -1 && Math.abs(x) < .85 && Math.abs(y) < .9 ? "visible" : "hidden";
+    label.current.style.left = (x + 1) * size.width / 2 + "px";
+    label.current.style.top = (1 - y) * size.height / 2 + "px";
+  });
+  return <group ref={anchor} position={position}/>;
+}
+
+export default function Aircraft3DViewer({ aircraft, maintenance, immersive = false }: { aircraft?: Aircraft; maintenance: Maintenance[]; immersive?: boolean }) {
   const [selected, setSelected] = useState<Part>("battery");
   const [history, setHistory] = useState<{ id: string; rows: Telemetry[] } | null>(null);
+  const componentLabel = useRef<HTMLSpanElement>(null);
   const aircraftId = aircraft?.id;
   const telemetry = aircraft?.telemetry;
   const form = aircraftShape(aircraft?.kind ?? "");
@@ -214,7 +247,7 @@ export default function Aircraft3DViewer({ aircraft, maintenance }: { aircraft?:
         fallback={<div className="airframe-fallback">3D rendering requires WebGL. Aircraft diagnostics remain available.</div>}>
         <color attach="background" args={["#101921"]} />
         <fog attach="fog" args={["#101921",12,30]} />
-        <StageFraming />
+        <StageFraming immersive={immersive} />
         <ambientLight intensity={.9} />
         <directionalLight position={[3,6,4]} intensity={2.75} castShadow shadow-mapSize={[1024,1024]} />
         <directionalLight position={[-4,3,-5]} intensity={2.15} color="#9ec5f3" />
@@ -224,13 +257,15 @@ export default function Aircraft3DViewer({ aircraft, maintenance }: { aircraft?:
           <Lightformer form="rect" intensity={2} color="#9ac2fa" position={[-5,2,-1]} scale={[4,7,1]} rotation={[0,Math.PI/2,0]} />
           <Lightformer form="rect" intensity={1.4} color="#f1be8a" position={[4,2,-3]} scale={[5,3,1]} rotation={[0,-Math.PI/2,0]} />
         </Environment>
-        <Runway />
+        <Runway immersive={immersive} />
         <group rotation={[0,-.23,0]}>
           {form === "multirotor" ? <Multirotor selected={selected} select={choose} /> : <WingAircraft selected={selected} select={choose} vtol={form === "vtol"} />}
+          {immersive && aircraft && <ComponentAnchor position={anchors[form][selected]} label={componentLabel}/>}
         </group>
         <ContactShadows position={[0,-.62,0]} opacity={.62} scale={10} blur={2.6} far={3} resolution={256} frames={1} />
         <OrbitControls enablePan={false} minDistance={3.5} maxDistance={13} maxPolarAngle={Math.PI/2.05} />
       </Canvas>
+      {immersive && aircraft && <span className="airframe-model-tag" ref={componentLabel} aria-hidden="true"><i/>{parts[selected]}</span>}
       <div className="airframe-identity diag-glass"><span>SIMULATED AIRCRAFT</span><strong>{aircraft?.id ?? "AIRFRAME"}</strong><p>{aircraft?.kind ?? "Component inspection"}</p></div>
       <div className="airframe-link diag-glass">
         <div className="diag-label"><DeckIcon name="live" size={14} /> Link quality <strong>{telemetry?.connectivity.signal_quality ?? "—"}%</strong></div>
