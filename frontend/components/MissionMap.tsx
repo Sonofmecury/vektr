@@ -253,7 +253,11 @@ export function MissionMap(props: MapProps) {
       const icon = button.querySelector<HTMLElement>(".mission-marker-glyph");
       if (icon) icon.style.transform = "rotate(" + sample.heading_deg + "deg)";
       const label = button.querySelector<HTMLElement>(".mission-marker-info");
-      if (label) label.textContent = craft.name + "\n" + Math.round(sample.position.altitude_m) + " m · " + sample.ground_speed_mps.toFixed(1) + " m/s";
+      const disconnected = sample.connectivity.status === "disconnected";
+      button.dataset.stale = String(disconnected);
+      button.setAttribute("aria-label", "Select " + craft.name + (disconnected ? ", last known position" : ""));
+      if (label) label.textContent = craft.name + "\n" + (disconnected ? "Last known position" :
+        Math.round(sample.position.altitude_m) + " m · " + sample.ground_speed_mps.toFixed(1) + " m/s");
     }
     for (const [id, marker] of markers.current) {
       if (!seen.has(id)) {

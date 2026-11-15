@@ -91,8 +91,9 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
   const [sidebar, setSidebar] = useState<"instruments" | "checklist" | "events">("instruments");
   const [tracksVisible, setTracksVisible] = useState(true);
   const [rangeVisible, setRangeVisible] = useState(true);
-  const [trafficVisible, setTrafficVisible] = useState(true);
-  const [cameraVisible, setCameraVisible] = useState(true);
+  const [trafficVisible, setTrafficVisible] = useState(false);
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const [mobilePane, setMobilePane] = useState<"map" | "aircraft" | "replay">("map");
   const [expanded, setExpanded] = useState(false);
   const [satellite, setSatellite] = useState(true);
   const [tilted, setTilted] = useState(false);
@@ -116,6 +117,12 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
   const isPlaying = playing && activeIndex < last;
   const replayActive = mode === "fly" && replay && !!samples.length;
   const activeSample = replayActive ? samples[activeIndex] : aircraft?.telemetry ?? undefined;
+  const liveLink = aircraft?.telemetry?.connectivity.status;
+  const telemetryStatus = replayActive ? "Recorded flight" : liveLink === "disconnected" ? "Connection lost" :
+    link !== "connected" ? "Stream interrupted" : !data.simulator.running ? "Simulator paused" :
+    liveLink === "delayed" ? "Link delayed" : activeSample ? "Receiving telemetry" : "Awaiting telemetry";
+  const stale = !replayActive && telemetryStatus !== "Receiving telemetry";
+  const receivedAt = activeSample ? new Date(activeSample.timestamp).toLocaleTimeString("en-GB", {timeZone: "UTC"}) : null;
   const waypoints = mode === "plan" ? drafts[selected] ?? EMPTY_POINTS : EMPTY_POINTS;
 
   useEffect(() => {
@@ -212,6 +219,8 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
     [craft.name, craft.id, craft.model].some(field => field.toLowerCase().includes(query.trim().toLowerCase())),
   );
   const vehicleAlerts = data.alerts.filter(alert => alert.aircraft_id === selected);
+  const exception = vehicleAlerts.find(alert => alert.state !== "resolved" && alert.severity === "critical")
+    ?? vehicleAlerts.find(alert => alert.state !== "resolved");
   const activeCount = data.aircraft.filter(craft => craft.telemetry?.status === "active").length;
 
   return <div className="flight-deck">
@@ -219,7 +228,7 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
       <div className="deck-top-left">
         <a className="deck-logo" href="/" aria-label="Vektr homepage"><VektrLogo size={20} /></a>
         <details className="deck-menu">
-          <summary>File</summary>
+          <summary>Workspaces</summary>
           <div className="deck-dropdown deck-glass">{pages.map(([id, label]) => <button key={id} type="button" onClick={event => {
             event.currentTarget.closest("details")?.removeAttribute("open");
             switchMode(id);
@@ -234,11 +243,35 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
             <label><input type="checkbox" checked={rangeVisible} onChange={e => setRangeVisible(e.target.checked)} /> 1 km reference ring</label>
           </div>
         </details>
+        <details className="deck-menu">
+          <summary>Demo guide</summary>
+          <div className="deck-dropdown deck-glass">
+            <button type="button" onClick={event => {
+              event.currentTarget.closest("details")?.removeAttribute("open");
+              setInspect(true);
+            }}>Inspect an aircraft</button>
+            <button type="button" disabled={!samples.length} onClick={event => {
+              event.currentTarget.closest("details")?.removeAttribute("open");
+              if (mode === "plan") navigate("overview");
+              seek(0);
+              setMobilePane("replay");
+            }}>Review a recorded flight</button>
+            <button type="button" onClick={event => {
+              event.currentTarget.closest("details")?.removeAttribute("open");
+              if (mode === "plan") navigate("overview");
+              selectCraft("UAV-001");
+              goLive();
+              setMobilePane("map");
+              void chooseScenario("connectivity");
+            }}>Run connection-loss scenario</button>
+            <p>Keep Aster One selected as its link degrades. Other simulated aircraft continue sending data.</p>
+          </div>
+        </details>
       </div>
       <nav className="deck-modes" aria-label="Workspace modes">
         <button type="button" aria-current={mode === "plan" ? "page" : undefined} onClick={() => switchMode("plan")}><DeckIcon name="route" /> Plan</button>
         <button type="button" aria-current={mode === "fly" ? "page" : undefined} onClick={() => switchMode("overview")}><DeckIcon name="live" /> Fly</button>
-        <button type="button" onClick={() => switchMode("analytics")}><DeckIcon name="chart" /> Analyze</button>
+        <button type="button" onClick={() => switchMode("analytics")}><DeckIcon name="chart" /> Analytics</button>
       </nav>
       <div className="deck-top-right">
         <span className="deck-clock">{clock} UTC</span>
@@ -257,7 +290,19 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
       </div>
     </header>
 
-    <main className="deck-workspace" aria-label="Vektr flight console">
+    <section className="deck-aircraft-summary" aria-label="Selected aircraft status" data-stale={stale}>
+      <div><AircraftGlyph kind={aircraft?.kind ?? ""} /><strong>{aircraft?.name ?? "Select an aircraft"}</strong><span>{aircraft?.id}</span></div>
+      <div><strong role="status">{telemetryStatus}</strong>{receivedAt && <span>{replayActive ? "Sample" : "Last received"} {receivedAt} UTC</span>}</div>
+      {activeSample && <div><span>{stale ? "Last battery" : "Battery"}</span><strong>{activeSample.battery.percentage}%</strong><span>· {Math.round(activeSample.position.altitude_m)} m · {activeSample.ground_speed_mps.toFixed(1)} m/s</span></div>}
+      {!replayActive && exception && <div className="deck-summary-exception"><DeckIcon name="alert" size={15} /><span>{exception.description}</span></div>}
+      <span className="deck-summary-stream">Simulator {data.simulator.running ? "running" : "paused"} · Stream {link}</span>
+    </section>
+    <main className="deck-workspace" aria-label="Vektr flight console" data-mobile-pane={mobilePane}>
+      <nav className="deck-mobile-tabs" aria-label="Flight console panels">
+        {(["map", "aircraft", "replay"] as const).map(pane =>
+          <button key={pane} type="button" aria-pressed={mobilePane === pane} onClick={() => setMobilePane(pane)}>{pane}</button>
+        )}
+      </nav>
       <aside className="deck-side" aria-label="Aircraft and instruments">
         <div className="deck-fleet-tools">
           <label><DeckIcon name="search" size={15} /><input aria-label="Search fleet" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search aircraft…" /></label>
@@ -270,7 +315,7 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
             return <button key={craft.id} type="button" aria-pressed={selected === craft.id} className="deck-aircraft-row" onClick={() => selectCraft(craft.id)}>
               <AircraftGlyph kind={craft.kind} size={17} />
               <span><strong>{craft.name}</strong><small>{craft.id}</small></span>
-              <span className="deck-row-battery">{telemetry ? telemetry.battery.percentage + "%" : "—"}</span>
+              <span className="deck-row-battery">{telemetry ? (telemetry.connectivity.status === "disconnected" ? "Last " : "") + telemetry.battery.percentage + "%" : "—"}</span>
               <i data-status={telemetry?.status ?? "offline"} title={telemetry?.status ?? "offline"} />
             </button>;
           })}
@@ -299,7 +344,7 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
                 <button type="button" disabled={waypoints.length < 2} onClick={exportDraft}>Export GeoJSON</button>
               </div>
             </div> : sidebar === "instruments"
-              ? <Instruments sample={activeSample} elapsed={elapsedFrom(samples, activeIndex)} replay={replayActive} />
+              ? <Instruments sample={activeSample} elapsed={elapsedFrom(samples, activeIndex)} replay={replayActive} stale={stale} />
               : sidebar === "checklist"
                 ? <Preflight sample={activeSample} checks={checks[selected] ?? []} onToggle={toggleCheck} />
                 : <div className="deck-events">{vehicleAlerts.length ? vehicleAlerts.map(alert => <article key={alert.id}>
@@ -330,12 +375,13 @@ export function FlightDeck({ data, mode, selected, onSelect, link, clock, naviga
             <header className="deck-float-head"><DeckIcon name="camera" size={14} /><strong>DRONE CAMERA</strong><span>{aircraft?.id}</span>
               <DeskButton name={expanded ? "close" : "expand"} label={expanded ? "Reduce camera" : "Expand camera"} onClick={() => setExpanded(value => !value)} />
             </header>
-            <SimulatedCamera sample={activeSample} expanded={expanded} />
+            {stale ? <p className="deck-camera-unavailable">{telemetryStatus}. Camera unavailable.</p> :
+              <SimulatedCamera sample={activeSample} expanded={expanded} />}
           </section>}
-          <div className="deck-map-caption deck-glass"><i data-link={link} />{replayActive ? "Recorded flight" : "Fleet simulation"}<span>{activeCount}/{data.aircraft.length} active</span></div>
+          <div className="deck-map-caption deck-glass"><i data-link={link} />{replayActive ? "Recorded flight" : stale ? "Last received positions for interrupted links" : "Fleet simulation"}<span>{activeCount}/{data.aircraft.length} active</span></div>
         </section>
         <ReplayTimeline flight={selectedFlight} aircraft={aircraft} sample={activeSample} replay={replayActive}
-          index={activeIndex} playing={isPlaying} speed={speed} loading={loading} error={loadError}
+          index={activeIndex} playing={isPlaying} speed={speed} loading={loading} error={loadError} stale={stale}
           onSeek={next => { if (mode === "plan") navigate("overview"); seek(next); }}
           onPlay={() => { if (mode === "plan") navigate("overview"); play(); }}
           onLive={goLive} onSpeed={setSpeed} />

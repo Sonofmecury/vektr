@@ -7,7 +7,7 @@
   height: 100dvh;
   min-height: 690px;
   display: grid;
-  grid-template-rows: 46px minmax(0, 1fr);
+  grid-template-rows: 46px auto minmax(0, 1fr);
   background: var(--kit-black);
   color: var(--deck-text);
   font: 13px var(--kit-body);
@@ -112,6 +112,22 @@
   grid-template-columns: clamp(250px, 28.9vw, 390px) minmax(0, 1fr);
   min-height: 0;
 }
+.deck-aircraft-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 20px;
+  padding: 10px 15px;
+  background: var(--kit-neutral-900);
+  border-bottom: 1px solid var(--deck-rule);
+}
+.deck-aircraft-summary > div { display: flex; align-items: center; gap: 7px; }
+.deck-aircraft-summary span { color: var(--deck-muted); }
+.deck-aircraft-summary[data-stale="true"] [role="status"], .deck-summary-exception { color: var(--kit-warning); }
+.deck-summary-stream { margin-inline-start: auto; }
+.deck-mobile-tabs { display: none; }
+.deck-stale-note, .deck-camera-unavailable { margin: 0; padding: 9px; color: var(--kit-warning); }
+.mission-marker[data-stale="true"] .mission-marker-glyph { opacity: .65; }
 .deck-side {
   display: grid;
   grid-template-rows: 38px auto minmax(0, 1fr);
@@ -383,7 +399,9 @@
   .deck-timeline-body { grid-template-columns: 132px minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
-  .flight-deck { height: auto; min-height: 100dvh; grid-template-rows: auto 1fr; }
+  .flight-deck { height: auto; min-height: 100dvh; grid-template-rows: auto auto 1fr; }
+  .deck-aircraft-summary { gap: 6px 12px; }
+  .deck-summary-stream { margin-inline-start: 0; }
   .deck-top { grid-template-columns: minmax(0,1fr) auto; row-gap: 4px; padding: 7px 8px 5px; }
   .deck-modes { grid-column: 1 / -1; grid-row: 2; justify-content: center; }
   .deck-modes button { width: 33.33%; height: 34px; }
@@ -392,7 +410,14 @@
   .deck-clock { display: none; }
   .deck-session summary { padding-inline: 5px; }
   .deck-workspace { grid-template-columns: minmax(0,1fr); }
-  .deck-main { grid-row: 1; }
+  .deck-mobile-tabs { display: flex; gap: 6px; padding: 7px; border-bottom: 1px solid var(--deck-rule); }
+  .deck-mobile-tabs button { flex: 1; min-height: 34px; border: 1px solid var(--deck-rule); background: var(--kit-neutral-900); text-transform: capitalize; }
+  .deck-mobile-tabs button[aria-pressed="true"] { border-color: var(--kit-primary-edge); background: var(--kit-active); }
+  .deck-main { grid-row: 2; display: block; }
+  .deck-workspace:not([data-mobile-pane="aircraft"]) .deck-side,
+  .deck-workspace[data-mobile-pane="aircraft"] .deck-main,
+  .deck-workspace:not([data-mobile-pane="map"]) .deck-map,
+  .deck-workspace:not([data-mobile-pane="replay"]) .deck-timeline { display: none; }
   .deck-map { height: 54svh; min-height: 360px; }
   .deck-side { grid-row: 2; border-right: 0; }
   .deck-fleet { max-height: 224px; }

@@ -56,9 +56,10 @@ function HeadingDial({ heading }: { heading: number }) {
   </div>;
 }
 
-export function Instruments({ sample, elapsed, replay }: { sample?: Telemetry; elapsed: number; replay: boolean }) {
+export function Instruments({ sample, elapsed, replay, stale }: { sample?: Telemetry; elapsed: number; replay: boolean; stale: boolean }) {
   if (!sample) return <p className="deck-empty">Waiting for aircraft telemetry.</p>;
   return <>
+    {stale && <p className="deck-stale-note">Last received aircraft readings</p>}
     <div className="deck-instrument-strip">
       <span>{replay ? "Flight time" : "Link"} <strong data-link={sample.connectivity.status}>{replay ? formatElapsed(elapsed) : sample.connectivity.status}</strong></span>
       <span>Battery <strong>{sample.battery.percentage}%</strong></span>
@@ -107,9 +108,9 @@ export function TrafficView({ fleet, selected, sample, onSelect }: {
   </section>;
 }
 
-export function ReplayTimeline({ flight, aircraft, sample, replay, index, playing, speed, loading, error, onSeek, onPlay, onLive, onSpeed }: {
+export function ReplayTimeline({ flight, aircraft, sample, replay, index, playing, speed, loading, error, stale = false, onSeek, onPlay, onLive, onSpeed }: {
   flight?: Flight; aircraft?: Aircraft; sample?: Telemetry; replay: boolean; index: number; playing: boolean; speed: number;
-  loading: boolean; error: string; onSeek: (index: number) => void; onPlay: () => void; onLive?: () => void; onSpeed: (speed: number) => void;
+  loading: boolean; error: string; stale?: boolean; onSeek: (index: number) => void; onPlay: () => void; onLive?: () => void; onSpeed: (speed: number) => void;
 }) {
   const samples = flight?.samples ?? [];
   const last = Math.max(0, samples.length - 1);
@@ -130,14 +131,14 @@ export function ReplayTimeline({ flight, aircraft, sample, replay, index, playin
     <div className="deck-transport">
       <div className="deck-transport-buttons">{controls.map(([icon, label, action]) => <button key={icon} type="button" disabled={!samples.length} aria-label={label} title={label} onClick={action}><DeckIcon name={icon} size={14} /></button>)}</div>
       <div className="deck-transport-data">
-        <span>{replay ? formatElapsed(elapsed) : "LIVE"}</span>
+        <span>{replay ? formatElapsed(elapsed) : stale ? "LAST RECEIVED" : "LIVE"}</span>
         {sample && <><span>{Math.round(sample.heading_deg)}°</span><span>{sample.ground_speed_mps.toFixed(1)} m/s</span><span>{Math.round(sample.position.altitude_m)} m</span><span>{sample.vertical_speed_mps.toFixed(2)} m/s ↑</span></>}
       </div>
       <div className="deck-transport-end">
         <select aria-label="Replay speed" value={speed} onChange={event => onSpeed(Number(event.target.value))}>
           {[1, 4, 8, 16, 32].map(rate => <option key={rate} value={rate}>{rate}×</option>)}
         </select>
-        {onLive && <button type="button" onClick={onLive} disabled={!replay} title="Return to live telemetry"><DeckIcon name="live" size={13} /> Live</button>}
+        {onLive && <button type="button" onClick={onLive} disabled={!replay} title="Return to aircraft telemetry"><DeckIcon name="live" size={13} /> Telemetry</button>}
       </div>
     </div>
     <div className="deck-timeline-body">

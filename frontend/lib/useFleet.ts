@@ -21,11 +21,16 @@ export function useFleet() {
     source.addEventListener("ready", () => {lastMessage.current = Date.now(); setLink("connected"); void refresh();});
     source.addEventListener("heartbeat", () => {lastMessage.current = Date.now(); setLink("connected");});
     source.addEventListener("telemetry", (event) => {
-      const message = JSON.parse((event as MessageEvent).data) as {samples: Telemetry[]; alerts: Snapshot["alerts"]};
+      const message = JSON.parse((event as MessageEvent).data) as {
+        samples: Telemetry[]; alerts: Snapshot["alerts"]; alertStates?: Record<string, string>;
+      };
       if (!Array.isArray(message.samples) || !Array.isArray(message.alerts)) return;
       lastMessage.current = Date.now(); setLink("connected");
       setSnapshot(prev => prev ? {...prev, aircraft: prev.aircraft.map(a => ({...a, telemetry: message.samples.find(s => s.aircraft_id === a.id) || a.telemetry})),
-        alerts: [...message.alerts, ...prev.alerts].slice(0, 50), simulator: {...prev.simulator, tick: prev.simulator.tick + 1}} : prev);
+        alerts: [...message.alerts, ...prev.alerts.map(alert => {
+          const resolved_at = message.alertStates?.[alert.id];
+          return resolved_at ? {...alert, state: "resolved", resolved_at} : alert;
+        })].slice(0, 50), simulator: {...prev.simulator, tick: prev.simulator.tick + 1}} : prev);
     });
     source.addEventListener("reset", () => {void refresh();});
     source.addEventListener("state", () => {void refresh();});

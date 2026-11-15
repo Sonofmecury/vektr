@@ -45,6 +45,7 @@ export default function Page() {
             <p className="public-lead">Aircraft position, health and flight history in one operations console.</p>
             <div className="public-actions">
               <a className="primary-action" href="/platform">Explore the platform <span aria-hidden="true">↗</span></a>
+              <a className="case-study-link" href="/case-study">Read the case study <span aria-hidden="true">↗</span></a>
             </div>
           </div>
           <p className="hero-caption">Concept imagery<br /><span>Simulated civilian fleet</span></p>

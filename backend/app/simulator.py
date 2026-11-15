@@ -121,11 +121,13 @@ class Simulator:
         self.scenario: Scenario = "normal"
         self.running = True
         self.speed = 1
+        self.last_received: dict[str, Telemetry] = {}
 
     def reset(self, scenario: Scenario = "normal") -> None:
         self.tick = 0
         self.scenario = scenario
         self.running = True
+        self.last_received.clear()
 
     def step(self, timestamp: datetime | None = None) -> list[Telemetry]:
         if self.running:
@@ -142,11 +144,11 @@ class Simulator:
             signal = max(35, 93 - int(8 * abs(math.sin(angle / 2))))
             connection = "connected"
             if self.scenario == "connectivity" and i == 0:
-                signal = max(0, 82 - self.tick * 9)
                 connection = "disconnected" if self.tick >= 9 else "delayed" if self.tick >= 5 else "connected"
+                signal = 0 if connection == "disconnected" else 82 - self.tick * 9
             sensor = "anomaly" if self.scenario == "sensor" and i == 2 and self.tick >= 7 else "nominal"
             attention = connection != "connected" or battery < 25 or sensor == "anomaly" or (self.scenario == "maintenance" and i == 3 and self.tick >= 5)
-            result.append(Telemetry(
+            sample = Telemetry(
                 aircraft_id=craft.id, timestamp=now,
                 position=Position(latitude=craft.latitude + 0.015 * math.sin(angle), longitude=craft.longitude + 0.019 * math.cos(angle), altitude_m=round(112 + 16 * math.sin(angle * 0.5), 1) if active else 0),
                 ground_speed_mps=round(12 + 2 * math.cos(angle), 1) if active else 0,
@@ -157,5 +159,12 @@ class Simulator:
                 connectivity=Connectivity(status=connection, signal_quality=signal),
                 sensor_status=sensor,
                 status="attention" if attention else "active" if active else "available",
-            ))
+            )
+            if connection == "disconnected" and craft.id in self.last_received:
+                sample = self.last_received[craft.id].model_copy(update={
+                    "connectivity": sample.connectivity, "status": sample.status,
+                })
+            else:
+                self.last_received[craft.id] = sample
+            result.append(sample)
         return result

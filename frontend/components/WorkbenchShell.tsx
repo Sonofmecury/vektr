@@ -7,7 +7,7 @@ import {InspectionIcon} from "./InspectionIcon";
 import {VektrLogo, VektrWordmark} from "./VektrLogo";
 
 const shortLabels: Partial<Record<VektrIconName, string>> = {
-  overview: "Fly", plan: "Plan", flights: "Replay", analytics: "Analysis", maintenance: "Service", system: "System",
+  overview: "Fly", plan: "Plan", system: "System",
 };
 
 type Props = {
@@ -58,7 +58,7 @@ export function WorkbenchShell({view, clock, link, data, pages, scenarios, navig
             <button type="button" disabled={pending || !data} onClick={() => void run(() => control("reset"))}>Reset</button></div>
           </div>
         </details>
-        <span className="wb-link" data-state={link} title={link}><i/>{link}</span>
+        <span className="wb-link" data-state={link} title={`Simulator stream ${link}`}><i/>Stream {link}</span>
         <time className="wb-clock">{clock} <span>UTC</span></time>
       </div>
     </header>

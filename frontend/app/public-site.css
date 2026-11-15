@@ -87,7 +87,17 @@
   letter-spacing: -.045em;
 }
 .public-lead { max-width: 32ch; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.4; color: #f1f1f1; }
-.public-actions { margin-top: 24px; }
+.public-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 24px; }
+.case-study-link { border-bottom: 1px solid currentColor; padding-block: 7px; font-size: 15px; }
+.case-study { max-width: 1000px; margin-inline: auto; padding: 48px var(--gutter) 72px; }
+.case-study h1, .case-study h2 { font-family: var(--kit-display); }
+.case-study h1 { font-size: clamp(38px, 6vw, 70px); line-height: 1.06; }
+.case-study h2 { margin-bottom: 12px; font-size: clamp(23px, 3vw, 32px); }
+.case-study p { max-width: 68ch; margin: 12px 0; color: var(--kit-neutral-300); line-height: 1.55; }
+.case-study p a { text-decoration: underline; text-underline-offset: 3px; }
+.case-study section { margin-top: 40px; }
+.case-study ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; padding: 0; list-style: none; }
+.case-study li { padding: 12px; background: var(--kit-neutral-900); border: 1px solid var(--line); }
 .hero-caption {
   position: absolute;
   right: var(--gutter);

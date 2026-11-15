@@ -26,8 +26,8 @@ function samplesFor(tick, scenario, timestamp) {
     let signal = Math.max(35, 93 - Math.trunc(8 * Math.abs(Math.sin(angle / 2))));
     let connection = "connected";
     if (scenario === "connectivity" && i === 0) {
-      signal = Math.max(0, 82 - tick * 9);
       connection = tick >= 9 ? "disconnected" : tick >= 5 ? "delayed" : "connected";
+      signal = connection === "disconnected" ? 0 : 82 - tick * 9;
     }
     const sensor = scenario === "sensor" && i === 2 && tick >= 7 ? "anomaly" : "nominal";
     const attention = connection !== "connected" || battery < 25 || sensor === "anomaly" ||
@@ -51,7 +51,7 @@ function samplesFor(tick, scenario, timestamp) {
 function initialState() {
   const now = Date.now();
   return {created: now, lastTick: now, sim: {running: true, scenario: "normal", speed: 1, tick: 1},
-    samples: samplesFor(1, "normal", iso(now)), alerts: [], conditions: [], history: [],
+    samples: samplesFor(1, "normal", iso(now)), alerts: [], conditions: [], history: [], holdsLostTelemetry: true,
     maintenance: fleet.map((craft, i) => ({id: `MX-${String(i + 1).padStart(3, "0")}`,
       aircraft_id: craft[0], component: ["Battery pack", "Motor assembly", "GPS module"][i % 3],
       inspection_type: "Routine component inspection", due_at: iso(now + (5 + i * 4) * 86400000),
@@ -154,15 +154,29 @@ function alertsFor(s) {
       current.push(key);
       if (s.conditions.includes(key)) continue;
       const alert = {id: `AL-${crypto.randomUUID().slice(0, 10).toUpperCase()}`, aircraft_id: sample.aircraft_id,
-        timestamp: sample.timestamp, category, severity, description, state: "open",
+        timestamp: iso(Date.now()), category, severity, description, state: "open",
         evidence: {sample}, note: "", resolved_at: null};
       s.alerts.push(alert);
       events.push(alert);
     }
   }
+  const active = new Set(current);
+  s.alerts = s.alerts.map(alert => {
+    const key = `${alert.aircraft_id}:${alert.category}:${alert.description}`;
+    return alert.state === "resolved" || active.has(key) ? alert :
+      {...alert, state: "resolved", resolved_at: iso(Date.now())};
+  });
   s.conditions = current;
   s.alerts = s.alerts.slice(-50);
   return events;
+}
+
+function refreshSamples(state, now) {
+  state.samples = samplesFor(state.sim.tick, state.sim.scenario, now).map((sample, i) => {
+    if (sample.connectivity.status !== "disconnected") return sample;
+    const previous = state.samples[i];
+    return {...previous, connectivity: sample.connectivity, status: sample.status};
+  });
 }
 
 export class FleetRoom extends DurableObject {
@@ -174,8 +188,21 @@ export class FleetRoom extends DurableObject {
     this.ticking = false;
     this.errors = 0;
     this.ready = ctx.blockConcurrencyWhile(async () => {
-      this.state = await ctx.storage.get("runtime") || initialState();
-      if (!await ctx.storage.get("runtime")) await ctx.storage.put("runtime", this.state);
+      const stored = await ctx.storage.get("runtime");
+      this.state = stored ?? initialState();
+      const upgrade = stored && !stored.holdsLostTelemetry;
+      if (upgrade) {
+        const received = stored.history.filter(sample => sample.connectivity.status !== "disconnected");
+        stored.samples = stored.samples.map(sample => {
+          if (sample.connectivity.status !== "disconnected") return sample;
+          const last = received.findLast(row => row.aircraft_id === sample.aircraft_id);
+          return last ? {...last, connectivity: sample.connectivity, status: sample.status} : sample;
+        });
+        stored.history = received;
+        stored.holdsLostTelemetry = true;
+        alertsFor(stored);
+      }
+      if (!stored || upgrade) await ctx.storage.put("runtime", this.state);
     });
   }
 
@@ -197,12 +224,13 @@ export class FleetRoom extends DurableObject {
       if (!s.sim.running) return;
       s.sim.tick += s.sim.speed;
       s.lastTick = Date.now();
-      s.samples = samplesFor(s.sim.tick, s.sim.scenario, iso(s.lastTick));
-      s.history.push(...s.samples);
+      refreshSamples(s, iso(s.lastTick));
+      s.history.push(...s.samples.filter(sample => sample.connectivity.status !== "disconnected"));
       s.history = s.history.slice(-720);
       const alerts = alertsFor(s);
       await this.persist();
-      this.broadcast("telemetry", {type: "telemetry", timestamp: iso(s.lastTick), samples: s.samples, alerts});
+      this.broadcast("telemetry", {type: "telemetry", timestamp: iso(s.lastTick), samples: s.samples, alerts,
+        alertStates: Object.fromEntries(s.alerts.filter(alert => alert.resolved_at).map(alert => [alert.id, alert.resolved_at]))});
     } finally {this.ticking = false;}
   }
 
@@ -242,7 +270,9 @@ export class FleetRoom extends DurableObject {
       if (!scenarios.has(body.scenario)) return error("Unknown demo scenario");
       s.sim = {running: true, scenario: body.scenario, speed: 1, tick: 1};
       s.conditions = [];
-      s.samples = samplesFor(1, body.scenario, iso(Date.now()));
+      s.lastTick = Date.now();
+      s.samples = samplesFor(1, body.scenario, iso(s.lastTick));
+      alertsFor(s);
       await this.persist();
       this.broadcast("reset", {type: "reset", simulator: stateFor(s)});
       return json(stateFor(s));
@@ -251,7 +281,13 @@ export class FleetRoom extends DurableObject {
       const body = await request.json().catch(() => ({}));
       if (!["start", "pause", "resume", "reset"].includes(body.action)) return error("Unknown simulator action");
       if (body.speed !== undefined && (!Number.isInteger(body.speed) || body.speed < 1 || body.speed > 8)) return error("Speed must be 1–8");
-      if (body.action === "reset") {s.sim.tick = 1; s.conditions = []; s.samples = samplesFor(1, s.sim.scenario, iso(Date.now()));}
+      if (body.action === "reset") {
+        s.sim.tick = 1;
+        s.conditions = [];
+        s.lastTick = Date.now();
+        s.samples = samplesFor(1, s.sim.scenario, iso(s.lastTick));
+        alertsFor(s);
+      }
       s.sim.running = body.action !== "pause";
       if (body.speed !== undefined) s.sim.speed = body.speed;
       await this.persist();

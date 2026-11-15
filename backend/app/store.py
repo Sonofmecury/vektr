@@ -84,6 +84,8 @@ def evaluate_alerts(session: Session, samples: list[Telemetry], active_condition
 
 def persist_tick(session: Session, samples: list[Telemetry], active_conditions: set[str], tick: int, scenario: str = "normal") -> list[dict]:
     for sample in samples:
+        if sample.connectivity.status == "disconnected":
+            continue
         session.add(TelemetrySample(aircraft_id=sample.aircraft_id, timestamp=sample.timestamp,
                                     payload=sample.model_dump(mode="json")))
     events = evaluate_alerts(session, samples, active_conditions, scenario == "maintenance" and tick >= 5)
