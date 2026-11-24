@@ -82,6 +82,7 @@ The apex and `www` routes are assigned to `vektr` in the Cloudflare dashboard. `
 - [Architecture](docs/ARCHITECTURE.md)
 - [API](docs/API.md)
 - [Security](docs/SECURITY.md)
+- [Secure delivery and release verification](docs/SECURE_DELIVERY.md)
 - [Design](docs/DESIGN.md)
 - [Limitations](docs/LIMITATIONS.md)
 - [Competitor research](docs/COMPETITOR_RESEARCH.md)
