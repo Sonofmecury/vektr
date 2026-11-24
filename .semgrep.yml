@@ -1,0 +1,18 @@
+rules:
+  - id: vektr-python-shell-subprocess
+    languages: [python]
+    message: Use an argument vector without invoking the shell.
+    severity: ERROR
+    pattern-either:
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
+  - id: vektr-python-unsafe-yaml-loader
+    languages: [python]
+    message: Load untrusted YAML using safe_load.
+    severity: ERROR
+    pattern: yaml.unsafe_load(...)
+  - id: vektr-js-eval
+    languages: [javascript, typescript]
+    message: Avoid executable code built from input.
+    severity: ERROR
+    pattern: eval(...)
