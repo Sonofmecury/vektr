@@ -14,7 +14,7 @@ The Worker smoke test checks the public application and synthetic snapshot throu
 
 From a trusted run on main, download `verified-vektr` and confirm the archive digest with `sha256sum -c vektr-worker-and-site.tar.gz.sha256`. Verify GitHub provenance with `gh attestation verify vektr-worker-and-site.tar.gz --repo Sonofmecury/vektr --source-ref refs/heads/main`. Check the run's source SHA against the commit you intend to ship.
 
-Cloudflare deployment credentials are outside the workflow. Maintain deploy access only in the operational environment. Before deploying, check the intended Cloudflare account, preview the exact release commit and keep the existing Worker version ID and archive digest. If smoke verification fails, roll back to the recorded Worker version using Cloudflare's deployment history, rerun the smoke checks and verify the release version. Durable Object schema or storage changes need their own recovery plan.
+The archive includes a Wrangler configuration referencing its bundled Worker and site files. After verifying the archive, extract it into a fresh directory. Use the Wrangler version recorded in the repository lockfile to run `wrangler deploy --no-bundle --config wrangler.jsonc --dry-run` from that directory before a deployment. Keep Cloudflare credentials in the operational environment and verify the intended account and preview first. Record the existing Worker version ID and archive digest. If smoke verification fails, roll back to the recorded Worker version using Cloudflare's deployment history, rerun the smoke checks and verify the release version. Durable Object schema or storage changes need their own recovery plan.
 
 ## Run the core checks locally
 

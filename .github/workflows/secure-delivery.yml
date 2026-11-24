@@ -80,7 +80,16 @@ jobs:
         run: |
           mkdir -p release/site
           cp -a frontend/out/. release/site/
-          cp edge/wrangler.jsonc release/
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          config = json.loads(Path("edge/wrangler.jsonc").read_text())
+          config["main"] = "worker/index.js"
+          config["assets"]["directory"] = "site"
+          Path("release/wrangler.jsonc").write_text(json.dumps(config, indent=2) + "\n")
+          PY
+          npm --prefix edge exec -- wrangler deploy --config "$PWD/release/wrangler.jsonc" --dry-run --no-bundle
           tar -czf vektr-worker-and-site.tar.gz -C release .
           sha256sum vektr-worker-and-site.tar.gz > vektr-worker-and-site.tar.gz.sha256
           npm sbom --prefix frontend --sbom-format cyclonedx > frontend.cdx.json
